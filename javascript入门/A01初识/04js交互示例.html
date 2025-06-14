@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>js 交互示例</title>
+    <!-- 这玩意看着好麻烦，可不可以交给AI去做... -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        input {
+            padding: 8px;
+            font-size: 16px;
+            width: 200px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #0077cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>请输入你的名字：</h1>
+    <input type="text" id="nameInput" placeholder="你的名字"><!-- type是输入的类型，id不可重复，placeholder是未输入内容时的显示信息 -->
+    <button onclick="showWelcome()">提交</button>
+    <div id="message"></div>
+    <script>
+        function showWelcome(){
+            const name = document.getElementById("nameInput").value.trim();/* trim的功能类似strip */
+            const messageDiv = document.getElementById("message");
+            if(name){
+                messageDiv.innerText = `欢迎你，${name}! 很高兴见到你！`; // 类似python的f-string
+            }
+            else{
+                messageDiv.innerText = `请输入有效的名字哦！`;
+            }
+        }
+    </script>
+    
+</body>
+</html>

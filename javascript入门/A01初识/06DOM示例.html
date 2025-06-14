@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOM 示例</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 30px;
+    }
+    input {
+        padding: 8px;
+        font-size: 16px;
+    }
+    button {
+        padding: 8px 16px;
+        margin-left: 10px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    ul {
+        margin-top: 20px;
+        list-style-type: circle;
+    }
+    li {
+        margin-bottom: 10px;
+    }
+    </style>
+</head>
+<body>
+    <h1>请输入项目</h1>
+    <input id="cinItem" type="text" placeholder="请输入内容">
+    <button id="addBtn">添加</button>
+    <ul id="itemList"></ul><!-- ul标签为无序列表 -->
+    <script>
+        // addEventListener是添加事件监听器，这里找到id为addBtn的元素，然后为它加一个监听器：如果遇到点击事件就调用后面的函数
+        // js的函数是真的飘逸... 我其实挺喜欢这种函数风格的，就是不太符合标准的写法
+        document.getElementById("addBtn").addEventListener("click",function(){
+            const cinItem = document.getElementById("cinItem") // 拿到cinItem，减少一次后面的函数调用
+
+            const txt = cinItem.value.trim(); // trim作用类似strip()，之前说过了
+            if(txt){
+                const li = document.createElement("li"); // 这是创建一个元素的方法，动态页面很重要
+                li.innerText = txt;
+
+                document.getElementById("itemList").appendChild(li); // 创建的元素要加入到DOM中，调用appendChild()函数
+                cinItem.value = ''; // 结束后将输入的内容清空
+            }
+            else{
+                alert("请输入内容！");
+            }
+        });
+    </script>
+</body>
+</html>

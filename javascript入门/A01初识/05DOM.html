@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOM 文档对象模型</title>
+</head>
+<body>
+    <!--
+        什么是DOM?
+        DOM是浏览器未每一个网页准备的一种树结构
+        它把HTML转为一个由节点组成的树，方便js动态地修改页面
+    -->
+    
+    <!-- 这是一个示例 -->
+    <h1 id="title">Hello</h1>
+    <p class="paragraph">This is a paragraph.</p>
+
+    <!--
+        DOCUMENT
+        └─ HTML
+            └─ BODY
+                ├─ H1 (id="title")
+                └─ P (class="paragraph")
+    -->
+    <!-- 可以使用js来操作DOM -->
+    <script>
+        // setTimeout可以让传入的内容在延时后执行，单位ms
+        setTimeout(function(){
+            const title = document.getElementById("title");
+            title.innerText = "Hello,DOM!";
+
+            title.style.color="red";
+            
+            // 创建一个新的元素然后加入
+            const newParagraph = document.createElement('p');
+            newParagraph.innerText = "由JavaScript 新增的元素";
+            document.body.appendChild(newParagraph);
+        }, 2000);
+    </script>
+
+
+</body>
+</html>

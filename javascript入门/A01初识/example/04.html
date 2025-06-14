@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JavaScript 交互示例</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f9f9f9;
+      text-align: center;
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+      width: 200px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 20px;
+      font-size: 20px;
+      color: #0077cc;
+    }
+  </style>
+</head>
+<body>
+
+<h1>请输入你的名字：</h1>
+<input type="text" id="nameInput" placeholder="你的名字" />
+<button onclick="showWelcome()">提交</button>
+
+<div id="message"></div>
+
+<script>
+  function showWelcome() {
+    const name = document.getElementById("nameInput").value.trim();
+    const messageDiv = document.getElementById("message");
+    if(name) {
+      messageDiv.innerText = `欢迎你，${name}！很高兴见到你！`;
+    } else {
+      messageDiv.innerText = "请输入有效的名字哦！";
+    }
+  }
+</script>
+
+</body>
+</html>

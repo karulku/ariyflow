@@ -1,0 +1,53 @@
+<!-- 
+css是用来给网页添加样式，比如颜色，字体，布局，间距等等，它负责网页的美化和排版
+简单来说，html是网页的骨架，css是网页的衣服和装饰
+css有三种使用方法：
+1.内联样式（直接写在html标签里面）
+    <p style="color: red">红色文字</p>
+2.内部样式（写在<style>标签里面，放在html的<head>中）
+    <style>
+        p{
+            color: blue;
+        }
+    </style>
+3.外部样式表（写在单独的.css文件里面，通过<link>标签引入）
+    html:
+    <link rel="stylesheet" href="style.css">
+    style.css:
+    p{
+        color: green;
+    }
+
+CSS选择器和属性
+选择器：告诉浏览器要给哪个元素加样式，比如p代表所有段落，h1代表所有一级标题
+属性：定义样式，比如color（字体颜色）,font-size（字体大小），background-color（背景颜色）等。
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AriyalFlow CSS示例</title>
+    <style>
+        body{
+            background-color: #f0f0f0;
+        }
+        h1{
+            color:darkblue;
+        }
+        p{
+            color:darkgreen;
+            font: size 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>欢迎学习 CSS!</h1>
+    <p>这是带样式的段落</p>
+    <p style="color:#A3B9A6">灰绿色</p>
+    <p style="color: #D8B5B5">灰粉</p>
+    <p style="color:#B0B0B0">柔灰</p>
+    <p style="color:#A9D6E5">薄兰</p>
+    <p style="color:#9ab7b7">苍青</p>
+</body>
+</html>

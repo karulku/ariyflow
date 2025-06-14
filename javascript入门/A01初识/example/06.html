@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>DOM操作示例</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-left: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    ul {
+      margin-top: 20px;
+      list-style-type: circle;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>请输入项目</h1>
+<input id="itemInput" type="text" placeholder="请输入内容">
+<button id="addBtn">添加</button>
+
+<ul id="itemList"></ul>
+
+<script>
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const input = document.getElementById('itemInput');
+    const text = input.value.trim();
+
+    if (text) {
+      const li = document.createElement('li'); // 创建一个li元素
+      li.innerText = text; // 设置它的文本为输入框的内容
+      document.getElementById('itemList').appendChild(li);
+      input.value = '';
+    } else {
+      alert('请输入一些内容再添加');
+    }
+  });
+</script>
+
+</body>
+</html>

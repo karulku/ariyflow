@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!--
+        事件（Events）
+        什么是事件？
+        事件就是用户或浏览器发生的“动作”或“事情”，比如：
+        click 用户点击按钮
+        input 用户输入文字
+        mousemove 鼠标移动
+        load 页面加载完成
+        keydown 键盘按下
+        submit 表单提交
+        mouseover 鼠标移入元素
+        mouseout 鼠标移出元素
+
+        通过监听事件，可以让网页对用户的操作做出响应，实现互动
+        下面是一个例子
+    -->
+    <button id="myBtn">点我</button>
+    <script>
+        const btn = document.getElementById("myBtn");
+        btn.addEventListener("click",()=>{
+            alert("按钮被点击了！");
+        })
+
+        // 事件处理函数里通常会接收一个对象（event），包含了事件的详细信息
+        btn.addEventListener("click",function(event){
+            console.log(event.target); // 触发事件的元素
+            console.log(event.type); // 触发的事件类型
+        });
+    </script>
+    <!-- 当点击按钮时，就会出现一个弹窗 -->
+</body>
+</html>
