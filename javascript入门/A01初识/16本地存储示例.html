@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地存储示例</title>
+</head>
+<body>
+    <h1>请输入用户名</h1>
+    <input type="text" id="username" placeholder="请输入用户名">
+    <button id="saveBtn">保存</button>
+    <script>
+
+        // DOMContentLoaded在DOM基本加载完成时触发，此时检查local中是否保存了username，如果保存了就加载进去
+        document.addEventListener("DOMContentLoaded",function(event){
+            const saveUsername = localStorage.getItem("username");
+            if(saveUsername){
+                document.getElementById("username").value = saveUsername;
+            }
+        });
+
+        // 绑定保存按钮，将输入的内容保存到本地存储
+        document.getElementById("saveBtn").addEventListener("click",function(event){
+            const name = document.getElementById("username").value.trim();
+            if(name){
+                localStorage.setItem("username",name);
+                alert("用户名已保存！");
+            }
+            else{
+                alert("请输入内容！");
+            }
+        });
+
+    </script>
+
+</body>
+</html>

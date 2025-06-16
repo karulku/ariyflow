@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+  <style>
+    .outer {
+      padding: 30px;
+      background: lightblue;
+    }
+    .inner {
+      padding: 30px;
+      background: lightgreen;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+    <h1>事件冒泡示例</h1>
+    <div class="outer">
+        Outer
+        <div class="inner">
+            Inner
+            <button>Click Me</button>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector(".outer").addEventListener("click",function(event){
+            console.log("Outer clicked");
+        });
+        document.querySelector(".inner").addEventListener("click",function(event){
+            console.log("inner clicked");
+        });
+        document.querySelector("button").addEventListener("click",function(event){
+            console.log("Button clicked");
+            event.stopPropagation();
+        });
+    </script>
+    <!--
+        事件由内向外传播，即“冒泡”
+        解除冒泡：
+        event.stopPropagation();
+    -->
+</body>
+</html>

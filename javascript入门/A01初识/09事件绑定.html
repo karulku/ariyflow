@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <ul id="itemList">
+        <li>item 1</li>
+        <li>item 2</li>
+        <li>item 3</li>
+    </ul>
+
+    <!-- 第一种写法，这种写法遍历所有li来绑定事件，效率很低 -->
+    <!-- <script>
+        document.querySelectorAll("li").forEach(function(li){
+            li.addEventListener("click",function(){
+                console.log("you click a item.");
+            });
+        });
+    </script> -->
+
+    <!-- 第二种写法，这种写法利用事件冒泡绑定父容器，这样只需要绑定一次事件，减少开销 -->
+    <script>
+        document.getElementById("itemList").addEventListener("click",function(event){
+            if(event.target && event.target.nodeName === "LI"){ // 这里有两个注意点：1.比较要用三个等号，否则会出问题；2.nodeName要大写
+                console.log("you clicked: ",event.target.innerText);
+            }
+        });
+    </script>
+</body>
+</html>

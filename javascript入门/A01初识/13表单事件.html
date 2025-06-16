@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表单事件练习</title>
+</head>
+<body>
+    <!--
+    表单事件（form events）
+    表单事件是我们进行数据输入和交互时常用的一种事件，包括yixiajiz：
+    submit 用户提交表单时触发
+    input 么此输入发生时触发
+    change 控件（如select或input[type='file']）的数值发生变化时触发
+    focus和blur 控件获得/失去焦点时触发
+    -->
+    <h1>请输入信息</h1>
+    <form action="" id="test-form">
+        <span>姓名</span>
+        <input type="text" name="username" id="username" placeholder="请输入姓名："><br>
+        <span>年龄</span>
+        <input type="text" name="age" id="age" placeholder="请输入年龄："><br>
+        <button type="submit">提交</button>
+    </form>
+
+    <script>
+        document.getElementById("test-form").addEventListener("submit",function(e){
+            e.preventDefault(); // 阻止默认的表单提交行为
+
+            msg = new FormData(e.target); // 获取form
+            msg = Object.fromEntries(msg.entries()); // 将form类型转为object类型操作（字典）
+            if(msg["username"].length<3||msg["age"]<0||msg["age"]>360||isNaN(Number(msg["age"]))){
+                alert("输入的数据有误，请重新输入！");
+                return;
+            }
+            else{
+                alert("提交表单成功！");
+            }
+            console.log("提交表单：",msg);
+        });
+        document.getElementById("test-form").addEventListener("input",function(event){
+            const target = event.target;
+            if(target.id === "username"){
+                if(target.value.length < 3){
+                    target.style.border = "2px solid red";
+                }
+                else{
+                    target.style.border = "2px solid green";
+                }
+            }
+            else if(target.id === "age"){
+                age = Number(target.value);
+                if(isNaN(age) || age<0 || age>360){
+                    target.style.border = "2px solid red";
+                }
+                else{
+                    target.style.border = "2px solid green";
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

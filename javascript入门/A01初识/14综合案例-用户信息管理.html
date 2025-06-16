@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合案例-用户信息管理</title>
+    <style>
+        body{
+            font-family: Arial,sans-serif;
+            margin:30px;
+            background: #f5f7fa;
+        }
+        form{
+            margin-bottom:20px;
+        }
+        input{
+            padding:8px;
+            margin-right:10px;
+            border:2px solid #ccc;
+            border-radius:5px;
+        }
+        input.invalid{
+            border-color:#ff4d4d;
+        }
+        input.valid{
+            border-color:#4caf50;
+        }
+        button{
+            padding:4px 14px;
+            cursor:pointer;
+        }
+        ul{
+            list-style:none;
+            padding:0;
+        }
+        li{
+            background:white;
+            margin-bottom:10px;
+            padding:10px 15px;
+            border-radius:5px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            box-shadow:0 2px 5px rgb(0 0 0/0.1);
+        }
+        .deleteBtn{
+            background: none;
+            border:none;
+            color:#ff4d4d;
+            font-weight:bold;
+            cursor:pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>用户信息管理</h1>
+    <form action="" id="Form">
+        <input type="text" id="name" name="name" placeholder="请输入姓名（至少3个字符）">
+        <input type="text" id="age" name="age" placeholder="请输入年龄（0-120）">
+        <button type="submit">提交</button>
+    </form>
+    <ul id="itemList"></ul>
+    <script>
+        // 为form表单的提交绑定监听事件
+        document.getElementById("Form").addEventListener("submit",function(event){
+            event.preventDefault();
+            form = event.target;
+            msg = new FormData(form);
+            msg = Object.fromEntries(msg.entries());
+            age = Number(msg["age"]);
+            if(!msg["name"] || !msg["age"]){
+                alert("请将信息填写完整！");
+                return;
+            }
+            if(msg["name"].length <= 0 || age<0 || age>120 || isNaN(age)){
+                alert("请输入正确的信息！");    
+            }
+            else{
+                addItem(msg);
+                console.log(msg);
+            }
+        });
+
+        // 添加item信息的函数
+        function addItem(msg){
+            li = document.createElement("li");
+            itemList = document.getElementById("itemList");
+            li.innerHTML = `
+                ${msg['name']} (${msg['age']}岁)
+                <button class='deleteBtn'>删除</button>
+            `;
+            itemList.appendChild(li);
+        }
+
+        // 为表单信息输入添加监听事件
+        document.getElementById("Form").addEventListener("input", function(event){
+            form = event.target;
+            if(form.id === "name"){
+                // console.log("name input");
+                if(form.value.length == 0){
+                    form.style.border = "2px solid red";
+                }
+                else{
+                    form.style.border = "2px solid green";
+                }
+            }
+            else if(form.id === "age"){
+                // console.log("age input");
+                age = Number(form.value);
+                if(isNaN(age)||age<0||age>120){ 
+                    form.style.border = "2px solid red";    
+                }
+                else{
+                    form.style.border = "2px solid green";
+                }
+            }
+        });
+
+        // 为删除绑定事件
+        document.getElementById("itemList").addEventListener("click",function(event){
+            const target = event.target;
+            if(target.classList.contains("deleteBtn")){
+                if(confirm("确定要删除吗？")){
+                    target.parentElement.remove();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

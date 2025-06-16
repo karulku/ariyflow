@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>综合案例 - 项目管理器</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 30px;
+  background: #edf2f7;
+}
+
+input {
+  padding: 8px;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 8px 16px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  background: #ffffff;
+  margin-bottom: 10px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 5px #0003;
+}
+
+.deleteBtn {
+  color: #ff4d4d;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>项目管理器</h1>
+<input id="itemInput" placeholder="请输入项目">
+<button id="addBtn">添加项目</button>
+
+<ul id="itemList"></ul>
+
+<script>
+  // 绑定事件委托到ul上
+  document.getElementById('itemList').addEventListener('click', (event) => {
+    if (event.target && event.target.classList.contains('deleteBtn')) {
+        console.log(event.target);
+      event.target.parentElement.remove();
+    }
+  });
+
+  // 新增项目功能
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const input = document.getElementById('itemInput');
+    const text = input.value.trim();
+
+    if (text) {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        ${text} 
+        <button class="deleteBtn">删除</button>`;
+      document.getElementById('itemList').appendChild(li);
+      input.value = '';
+    } else {
+      alert('请输入项目');
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合案例 项目管理器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #edf2f7;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background: #ffffff;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border-radius: 5px;/* 圆角，更好看 */
+            display: flex;/* 下面这三条可以让删除的按钮到最右边对齐 */
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px #0003;/* 阴影效果 */
+        }
+
+        .deleteBtn {
+            color: #ff4d4d;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer; /* 鼠标移上去的时候显示的图标 */
+        }
+    </style>
+</head>
+<body>
+    <h1>项目管理器</h1>
+    <input type="text" placeholder="请输入项目" id="cin01">
+    <button id="btn01">添加项目</button>
+    <ul id="itemList"></ul>
+    <script>
+        // 这个函数是为点击按钮绑定事件
+        document.getElementById("btn01").addEventListener("click",function(){
+            cin01 = document.getElementById("cin01");
+            txt = cin01.value.trim(); // 输入的内容
+            if(txt){
+                const li = document.createElement("li"); // 创建li标签并加入dom
+                li.innerHTML = `${txt}<button class='deleteBtn'>删除</button>`;
+                document.getElementById("itemList").appendChild(li);
+                cin01.value = '';
+            }
+            else{
+                alert("请输入内容！");
+            }
+        });
+        // 为删除按钮绑定事件
+        document.getElementById("itemList").addEventListener("click",function(event){
+            if(event.target && event.target.nodeName === "BUTTON"){
+                event.target.parentElement.remove();
+            }
+        });
+        /* 绑定事件还有另外一种写法：
+        if(event.target && event.target.classList.contains("deleteBtn")){
+            event.target.parentElement.remove();
+        }
+        这种写法更推荐，因为更加通用 */
+    </script>
+    
+</body>
+</html>

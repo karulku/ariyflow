@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>用户信息管理</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    background: #f5f7fa;
+  }
+  form {
+    margin-bottom: 20px;
+  }
+  input {
+    padding: 8px;
+    margin-right: 10px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+  }
+  input.invalid {
+    border-color: #ff4d4d;
+  }
+  input.valid {
+    border-color: #4caf50;
+  }
+  button {
+    padding: 8px 15px;
+    cursor: pointer;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+  li {
+    background: white;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+  }
+  .deleteBtn {
+    background: none;
+    border: none;
+    color: #ff4d4d;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>用户信息管理</h1>
+
+<form id="userForm">
+  <input type="text" id="username" name="username" placeholder="请输入姓名（至少3个字符）" />
+  <input type="text" id="age" name="age" placeholder="请输入年龄（0-120）" />
+  <button type="submit">提交</button>
+</form>
+
+<ul id="userList"></ul>
+
+<script>
+  const userForm = document.getElementById('userForm');
+  const userList = document.getElementById('userList');
+  const usernameInput = document.getElementById('username');
+  const ageInput = document.getElementById('age');
+
+  // 实时校验输入
+  userForm.addEventListener('input', (event) => {
+    const target = event.target;
+    if (target === usernameInput) {
+      if (target.value.trim().length >= 3) {
+        target.classList.add('valid');
+        target.classList.remove('invalid');
+      } else {
+        target.classList.add('invalid');
+        target.classList.remove('valid');
+      }
+    } else if (target === ageInput) {
+      const age = Number(target.value);
+      if (!isNaN(age) && age >= 0 && age <= 120) {
+        target.classList.add('valid');
+        target.classList.remove('invalid');
+      } else {
+        target.classList.add('invalid');
+        target.classList.remove('valid');
+      }
+    }
+  });
+
+  // 模拟异步提交，返回Promise
+  function fakeSubmit(user) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({...user, id: Date.now()});
+      }, 1000);
+    });
+  }
+
+  // 渲染用户列表
+  function renderUser(user) {
+    const li = document.createElement('li');
+    li.dataset.id = user.id;
+    li.innerHTML = `
+      <span>${user.username} （${user.age}岁）</span>
+      <button class="deleteBtn">删除</button>
+    `;
+    userList.appendChild(li);
+  }
+
+  // 表单提交处理
+  userForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const username = usernameInput.value.trim();
+    const age = Number(ageInput.value);
+
+    // 简单验证
+    if (username.length < 3) {
+      alert('姓名至少3个字符');
+      return;
+    }
+    if (isNaN(age) || age < 0 || age > 120) {
+      alert('请输入有效年龄（0-120）');
+      return;
+    }
+
+    // 异步模拟提交
+    try {
+      const newUser = await fakeSubmit({username, age});
+      renderUser(newUser);
+
+      // 重置表单
+      userForm.reset();
+      usernameInput.classList.remove('valid', 'invalid');
+      ageInput.classList.remove('valid', 'invalid');
+    } catch (error) {
+      alert('提交失败，请稍后重试');
+      console.error(error);
+    }
+  });
+
+  // 事件委托删除用户
+  userList.addEventListener('click', (event) => {
+    if (event.target.classList.contains('deleteBtn')) {
+      const li = event.target.closest('li');
+      if (li && confirm('确定删除这条用户信息吗？')) {
+        li.remove();
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
