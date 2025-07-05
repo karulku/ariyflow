@@ -1,0 +1,162 @@
+C51 COMPILER V9.54   MAIN                                                                  07/05/2025 13:23:58 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\0_SoftWare\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include<STC15F2K60S2.H>
+   2          #include"sys.h"
+   3          #include"displayer.h"
+   4          #include"Beep.h"
+   5          #include"hall.H"
+   6          #include"key.h"
+   7          #include"ADC.h"
+   8          #include"music.h"
+   9          #include"stepmotor.h"
+  10          #include"Vib.h"
+  11          #include"uart1.h"
+  12          
+  13          /*
+  14          00 -- 刷视频助手
+  15            编码规则：
+  16              第0,1字节为数据包头，第2个字节为00 标识功能
+  17              
+  18              第3个字节为指令
+  19                00 -- 刷新页面
+  20                ff -- 退出视频（如果打开了视频，没有打开视频会直接退出）
+  21                01 -- 点开第1个视频 02 -- 点开第2个视频 03 -- 点开第2个视频
+  22                04 -- 点开第4个视频 05 -- 点开第5个视频 06 -- 点开第6个视频
+  23                fe -- 直接退出，不管是否打开视频
+  24                
+  25                比如：10 29 00 00 00 xx xx xx 表示刷新页面
+  26              
+  27              第4个字节为前置指令
+  28                这条指令为00时正常处理第3个字节的指令
+  29                这条指令不为00时会触发前置指令操作：
+  30                  01 -- 打开b站  (10 29 00 xx 01 xx xx xx) 触发打开b站事件
+  31                  02 -- 关闭串口  (10 29 00 xx 02 xx xx xx)
+  32                    关闭单片机和电脑的连接，慎用，关闭后只能从PC端的程序打开串口
+  33                    由于关闭串口单片机无法操作程序，所以程序打开后默认会打开一次串口
+  34                    关闭后单片机无法与计算机通信，所以无法使用单片机再次打开串口
+  35              
+  36              
+  37            交互功能：
+  38              数码管6,7 -- 显示要发送的指令
+  39              key1 -- 发送前置指令打开b站
+  40              key3 -- 发送数据
+  41              导航上键 -- 指令+1
+  42              导航下键 -- 指令-1
+  43              导航中键 -- 清0
+  44              导航左键 -- 关闭串口
+  45          */
+  46          
+  47          const unsigned char code DECODE_TABLE[] = { 
+  48              0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, // 0-7
+  49          //  0(0)  1(1)  2(2)  3(3)  4(4)  5(5)  6(6)  7(7)
+  50              0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71, // 8-15
+  51          //  8(8)  9(9)  a(10) b(11) c(12) d(13) e(14) f(15)
+  52              0xBF, 0x86, 0xDB, 0xcF, 0xE6, 0xED, 0xFD, 0x87, // 16-23
+  53          //  0.(16)1.(17)2.(18)3.(19)4.(20)5.(21)6.(22)7.(23)
+  54              0xFF, 0xEF, 0x3d, 0x76, 0x0f, 0x0E, 0x75, 0x38, // 24-31
+C51 COMPILER V9.54   MAIN                                                                  07/05/2025 13:23:58 PAGE 2   
+
+  55          //  8.(24)9.(25)G(26) H(27) I(28) J(29) K(30) L(31)
+  56              0x37, 0x54, 0x5c, 0x73, 0x67, 0x31, 0x49, 0x78, // 32-39
+  57          //  M(32) N(33) O(34) P(35) Q(36) R(37) S(38) T(39)
+  58              0x3e, 0x1c, 0x7e, 0x64, 0x6e, 0x5a, 0x00, 0xFF  // 40-47
+  59          //  U(40) V(41) W(42) X(43) Y(44) Z(45) None  ALL
+  60          };
+  61          
+  62          code unsigned long SysClock=11059200;
+  63          unsigned char led_vector;
+  64          unsigned char cnt;
+  65          unsigned char uart_buf[8],head[2]={0x10,0x29},receive_buf[8];
+  66          
+  67          void my100mSCallback(){
+  68   1        Seg7Print(46,46,46,46,46,46,cnt>>4,cnt&(0x0f));
+  69   1      }
+  70          
+  71          void myKeyCallback(){
+  72   1        unsigned char key;
+  73   1        key = GetKeyAct(enumKey1);
+  74   1        if(key == enumKeyPress){
+  75   2          uart_buf[0]=0x10,uart_buf[1]=0x29,uart_buf[2]=0x00,uart_buf[4]=0x01;
+  76   2          Uart1Print(uart_buf,8);
+  77   2        }
+  78   1      }
+  79          
+  80          void myADCCallback(){
+  81   1        unsigned char key;
+  82   1        key = GetAdcNavAct(enumAdcNavKey3); // key3键按下，发送数据cnt
+  83   1        if(key == enumKeyPress){
+  84   2          uart_buf[0] = 0x10,uart_buf[1] = 0x29,uart_buf[2] = 0x00,uart_buf[3] = cnt,uart_buf[4]=0x00;
+  85   2          Uart1Print(uart_buf,8);
+  86   2        }
+  87   1        key = GetAdcNavAct(enumAdcNavKeyUp); // 上键cnt+1
+  88   1        if(key == enumKeyPress){
+  89   2          cnt++;
+  90   2        }
+  91   1        key = GetAdcNavAct(enumAdcNavKeyDown); // 下键cnt-1
+  92   1        if(key == enumKeyPress){
+  93   2          cnt--;
+  94   2        }
+  95   1        key = GetAdcNavAct(enumAdcNavKeyCenter); // 中心键重置cnt
+  96   1        if(key == enumKeyPress){
+  97   2          cnt = 0;
+  98   2        }
+  99   1        key = GetAdcNavAct(enumAdcNavKeyLeft); // 左键发送关闭串口指令
+ 100   1        if(key == enumKeyPress){
+ 101   2          uart_buf[0]=0x10,uart_buf[1]=0x29,uart_buf[2]=0x00,uart_buf[4]=0x02;
+ 102   2          Uart1Print(uart_buf,8);
+ 103   2        }
+ 104   1        
+ 105   1      }
+ 106          
+ 107          void myUart1Callback(){
+ 108   1        
+ 109   1      }
+ 110          
+ 111          void main(){
+ 112   1        MySTC_Init();
+ 113   1        DisplayerInit();
+ 114   1        BeepInit();
+ 115   1        HallInit();
+ 116   1        KeyInit();
+C51 COMPILER V9.54   MAIN                                                                  07/05/2025 13:23:58 PAGE 3   
+
+ 117   1        AdcInit(ADCexpEXT);
+ 118   1        MusicPlayerInit();
+ 119   1        StepMotorInit();
+ 120   1        VibInit();
+ 121   1        Seg7Print(46,46,46,46,46,46,46,46);
+ 122   1        LedPrint(0);
+ 123   1        Uart1Init(9600);
+ 124   1        SetUart1Rxd(receive_buf,8,head,2);
+ 125   1        SetEventCallBack(enumEventSys100mS,my100mSCallback);
+ 126   1        
+ 127   1        SetEventCallBack(enumEventKey,myKeyCallback);
+ 128   1        SetEventCallBack(enumEventUart1Rxd,myUart1Callback);
+ 129   1        SetEventCallBack(enumEventXADC,myADCCallback);
+ 130   1        
+ 131   1        while(1){
+ 132   2          MySTC_OS();
+ 133   2        }
+ 134   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    326    ----
+   CONSTANT SIZE    =     52    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     20       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
