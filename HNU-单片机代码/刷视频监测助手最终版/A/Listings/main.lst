@@ -1,0 +1,462 @@
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\0_SoftWare\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include<STC15F2K60S2.H>
+   2          #include"sys.h"
+   3          #include"displayer.h"
+   4          #include"Beep.h"
+   5          #include"key.h"
+   6          #include"ADC.h"
+   7          #include"uart1.h"
+   8          #include"uart2.h"
+   9          #include"IR.h"
+  10          #include"DS1302.h"
+  11          #include"FM_Radio.h"
+  12          #include"intrins.h"
+  13          // 下位机程序
+  14          /*
+  15          编码规则：
+  16            第0,1字节为数据包头，第2个字节标识功能
+  17            
+  18            第0,1字节固定为10 29
+  19            第2字节为功能字节：
+  20              00 -- 刷视频助手，下位机与PC双向通信
+  21                第3个字节为指令
+  22                  00 -- 刷新页面
+  23                  ff -- 退出视频（如果打开了视频，没有打开视频会直接退出）
+  24                  01 -- 点开第1个视频 02 -- 点开第2个视频 03 -- 点开第2个视频
+  25                  04 -- 点开第4个视频 05 -- 点开第5个视频 06 -- 点开第6个视频
+  26                  fe -- 直接退出，不管是否打开视频
+  27                  
+  28                  比如：10 29 00 00 00 xx xx xx 表示刷新页面
+  29                
+  30                第4个字节为前置指令
+  31                  这条指令为00时正常处理第3个字节的指令
+  32                  这条指令不为00时会触发前置指令操作：
+  33                    01 -- 打开b站（下位机 -> PC）  (10 29 00 xx 01 xx xx xx) 触发打开b站事件
+  34                    
+  35                    02 -- 关闭串口（该功能在新版中已弃用）  (10 29 00 xx 02 xx xx xx)
+  36                          关闭单片机和电脑的连接，慎用，关闭后只能从PC端的程序打开串口
+  37                          由于关闭串口单片机无法操作程序，所以程序打开后默认会打开一次串口
+  38                          关闭后单片机无法与计算机通信，所以无法使用单片机再次打开串口
+  39                          
+  40                    03 -- 时间信号（PC -> 下位机） 发送时间，此时第5，6，7字节表示时，分，秒
+  41                          该信号在刷视频结束（关闭PC程序时，不受超时信号影响）触发，数码管显
+             -示时-分-秒，上位机也会同步显示
+  42                    
+  43                    04 -- 超时信号（PC -> 下位机） 由PC发送来的超时信号，下位机收到该信号后�
+             -�警，并将信号传递给下位机
+  44                          超时时数码管会显示 00-00-00
+  45              ff -- 上下位机通信
+  46                下位机向上位机发送指令:
+  47                  
+  48            
+  49            
+  50          交互功能：
+  51            数码管6,7 -- 显示要发送的指令
+  52            key1 -- 发送前置指令打开b站
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 2   
+
+  53            key3 -- 发送数据
+  54            导航上键 -- 指令+1
+  55            导航下键 -- 指令-1
+  56            导航中键 -- 清0
+  57            导航左键 -- 关闭串口
+  58            
+  59            注意后面对于模式的定义有两种，一种是单片机内部的模式，该模式由mode定义�
+             -�另一种是单片机串口通信的模式，该模式由buf缓冲区的第2个字节定义
+  60          */
+  61          
+  62          const unsigned char code DECODE_TABLE[] = { 
+  63              0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, // 0-7
+  64          //  0(0)  1(1)  2(2)  3(3)  4(4)  5(5)  6(6)  7(7)
+  65              0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71, // 8-15
+  66          //  8(8)  9(9)  a(10) b(11) c(12) d(13) e(14) f(15)
+  67              0xBF, 0x86, 0xDB, 0xcF, 0xE6, 0xED, 0xFD, 0x87, // 16-23
+  68          //  0.(16)1.(17)2.(18)3.(19)4.(20)5.(21)6.(22)7.(23)
+  69              0xFF, 0xEF, 0x3d, 0x76, 0x0f, 0x0E, 0x75, 0x38, // 24-31
+  70          //  8.(24)9.(25)G(26) H(27) I(28) J(29) K(30) L(31)
+  71              0x37, 0x54, 0x5c, 0x73, 0x67, 0x31, 0x49, 0x78, // 32-39
+  72          //  M(32) N(33) O(34) P(35) Q(36) R(37) S(38) T(39)
+  73              0x3e, 0x1c, 0x7e, 0x64, 0x6e, 0x5a, 0x00, 0xFF,  // 40-47
+  74          //  U(40) V(41) W(42) X(43) Y(44) Z(45) None  ALL
+  75              0x40
+  76          };
+  77          
+  78          #define uchar unsigned char
+  79          
+  80          code unsigned long SysClock=11059200;
+  81          unsigned char local_addr = 0x01; // 这是本机地址，不可修改！！！
+  82          unsigned char uart_buf[8],receive_buf[8]; // 串口发送和接收的缓冲区
+  83          unsigned char xdata seg[8] = {46,46,46,46,46,46,46,46}; // 数码管显示向量
+  84          unsigned char code uart_head[2] = {0x10,0x29}; // 包头
+  85          unsigned char ir_buf[8]; // 红外缓冲区
+  86          unsigned char adc_buf[8]; // 传送adc数据的专用缓冲区
+  87          unsigned char mode = 0; // 全局模式
+  88          unsigned char clk_mode = 0; // 时钟内部的模式
+  89          struct_ADC adc; // adc值
+  90          struct_DS1302_RTC clk = {0x00,0x00,0x00,0x00,0x00,0x00,0x00}; // 时钟信息
+  91          struct_FMRadio xdata fm = {918,5,0,0,0}; // 收音机信息
+  92          unsigned char xdata fm_state = 0x00; // 保存fm的状态，第0位标识频率是否可调整，第1位�
+             -�识音量是否可调整
+  93          unsigned char xdata receive2_buf[8]; // 串口2的接收缓冲区
+  94          
+  95          void showSeg(){
+  96   1        Seg7Print(seg[0],seg[1],seg[2],seg[3],seg[4],seg[5],seg[6],seg[7]);
+  97   1      }
+  98          
+  99          void uartbufSet(uchar a, uchar b, uchar c, uchar d, uchar e, uchar f, uchar g, uchar h){
+ 100   1        uart_buf[0]=a;
+ 101   1        uart_buf[1]=b;
+ 102   1        uart_buf[2]=c;
+ 103   1        uart_buf[3]=d;
+ 104   1        uart_buf[4]=e;
+ 105   1        uart_buf[5]=f;
+ 106   1        uart_buf[6]=g;
+ 107   1        uart_buf[7]=h;
+ 108   1      }
+ 109          
+ 110          void adcbufSet(uchar a, uchar b, uchar c, uchar d, uchar e, uchar f, uchar g, uchar h){
+ 111   1        adc_buf[0]=a;
+ 112   1        adc_buf[1]=b;
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 3   
+
+ 113   1        adc_buf[2]=c;
+ 114   1        adc_buf[3]=d;
+ 115   1        adc_buf[4]=e;
+ 116   1        adc_buf[5]=f;
+ 117   1        adc_buf[6]=g;
+ 118   1        adc_buf[7]=h;
+ 119   1      }
+ 120          
+ 121          void segSet(uchar a, uchar b, uchar c, uchar d, uchar e, uchar f, uchar g, uchar h){
+ 122   1        seg[0] = a;
+ 123   1        seg[1] = b;
+ 124   1        seg[2] = c;
+ 125   1        seg[3] = d;
+ 126   1        seg[4] = e;
+ 127   1        seg[5] = f;
+ 128   1        seg[6] = g;
+ 129   1        seg[7] = h;
+ 130   1      }
+ 131          
+ 132          void myDelay(unsigned char xms)   //@11.0592MHz
+ 133          {
+ 134   1        while(xms--){
+ 135   2          unsigned char i, j;
+ 136   2      
+ 137   2          _nop_();
+ 138   2          _nop_();
+ 139   2          _nop_();
+ 140   2          i = 11;
+ 141   2          j = 190;
+ 142   2          do
+ 143   2          {
+ 144   3            while (--j);
+ 145   3          } while (--i);
+ 146   2        }
+ 147   1      }
+ 148          
+ 149          void my100mSCallback(){
+ 150   1        LedPrint(mode+1);
+ 151   1        if(mode == 0){ // 默认模式
+ 152   2          if(uart_buf[2] == 0x00){ // 视频助手模式
+ 153   3            segSet(46,46,46,46,46,46,(uart_buf[3]&0xf0)>>4, (uart_buf[3]&0x0f));
+ 154   3            // 测试代码，后续删除
+ 155   3            // segSet((uart_buf[4]&0xf0)>>4, (uart_buf[4]&0x0f),(uart_buf[5]&0xf0)>>4, (uart_buf[5]&0x0f),(uart_buf
+             -[6]&0xf0)>>4, (uart_buf[6]&0x0f),(uart_buf[7]&0xf0)>>4, (uart_buf[7]&0x0f));
+ 156   3          }
+ 157   2          else if(uart_buf[2] == 0xff){ // 双机通信模式
+ 158   3            if(receive_buf[3] == 0x00){
+ 159   4              segSet(receive_buf[5]/10,receive_buf[5]%10,48,receive_buf[6]/10,receive_buf[6]%10,48,receive_buf[7]/10
+             -,receive_buf[7]%10);
+ 160   4            }
+ 161   3            else if(receive_buf[3] == 0x01){
+ 162   4              uartbufSet(0x10,0x29,0xff,0x01,0x00,0x00,0x00,0x00);
+ 163   4              Uart1Print(uart_buf, 8);
+ 164   4            }
+ 165   3          }
+ 166   2        }
+ 167   1        
+ 168   1        if(mode == 1){ // 如果是时钟模式
+ 169   2          clk = RTC_Read();
+ 170   2          if(clk_mode == 0){
+ 171   3            segSet(clk.hour>>4,clk.hour&0x0f,48,clk.minute>>4,clk.minute&0x0f,48,clk.second>>4,clk.second&0x0f);
+ 172   3            showSeg();
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 4   
+
+ 173   3          }
+ 174   2          else if(clk_mode == 1){
+ 175   3            segSet(clk.year>>4,clk.year&0x0f,48,clk.month>>4,clk.month&0x0f,48,clk.day>>4,clk.day&0x0f);
+ 176   3            showSeg();
+ 177   3          }
+ 178   2          else if(clk_mode == 2){
+ 179   3            segSet(48,48,48,48,48,48,clk.week>>4,clk.week&0x0f);
+ 180   3            showSeg();
+ 181   3          }
+ 182   2        }
+ 183   1        
+ 184   1        if(mode == 2){ // 收音机模式
+ 185   2          segSet(48,fm.frequency/100,fm.frequency/10%10+16,fm.frequency%10,48,48,fm.volume/10,fm.volume%10);
+ 186   2          showSeg();
+ 187   2        }
+ 188   1        
+ 189   1        showSeg();
+ 190   1      }
+ 191          
+ 192          void myKeyCallback(){
+ 193   1        unsigned char key;
+ 194   1        
+ 195   1        key = GetKeyAct(enumKey2);
+ 196   1        if(key == enumKeyPress){
+ 197   2          mode = (mode+1)%3;
+ 198   2          
+ 199   2          // 这里放mode切换后需要执行的操作
+ 200   2          if(mode == 1){
+ 201   3            clk_mode = 0;
+ 202   3          }
+ 203   2          
+ 204   2          if(mode == 0){
+ 205   3            // 注意这里，在发送完毕之后，需要把uart_buf[2]切换回0x00，否则会出现问题（s
+             -hit山代码）
+ 206   3            uart_buf[2] = 0x00;
+ 207   3            fm_state = 0x00;
+ 208   3          }
+ 209   2        }
+ 210   1        
+ 211   1        if(mode == 0){
+ 212   2          if(uart_buf[2] == 0x00){
+ 213   3            key = GetKeyAct(enumKey1);
+ 214   3            if(key == enumKeyPress){
+ 215   4              uartbufSet(0x10,0x29,0x00,0x00,0x01,0x00,0x00,0x00);
+ 216   4              Uart1Print(uart_buf, 8);
+ 217   4            }
+ 218   3          }
+ 219   2        }
+ 220   1      
+ 221   1        if(mode == 1){ // 时钟模式下
+ 222   2          key = GetKeyAct(enumKey1); // 按下key1键切换显示模式
+ 223   2          if(key == enumKeyPress){
+ 224   3            clk_mode = (clk_mode+1)%3;
+ 225   3          }
+ 226   2        }
+ 227   1        
+ 228   1        if(mode == 2){ // 收音机模式
+ 229   2          key = GetKeyAct(enumKey1); // key1时控制音量
+ 230   2          if(key == enumKeyPress){
+ 231   3            if((fm_state&0x02) != 0x02)fm_state = (fm_state ^ 0x01); // 如果正在调整频率，指令无效
+ 232   3            if((fm_state&0x01) == 0x01){ // 按下后状态为调整音量，触发一次提示音
+ 233   4              SetBeep(800, 20);
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 5   
+
+ 234   4            }
+ 235   3            else{ // 按下后为调整完成，触发另一个提示音
+ 236   4              uartbufSet(0x10,0x29,0x01,0x01,(fm.frequency>>8),(fm.frequency&0x00ff),fm.volume,0x00);
+ 237   4              Uart1Print(uart_buf, 8);
+ 238   4              SetBeep(600,20);
+ 239   4            }
+ 240   3          }
+ 241   2        }
+ 242   1      }
+ 243          
+ 244          void myADCCallback(){
+ 245   1        unsigned char key;
+ 246   1        if(mode == 0){ // mode 0：控制串口发送
+ 247   2          if(uart_buf[2] == 0x00){
+ 248   3            key = GetAdcNavAct(enumAdcNavKey3);
+ 249   3            if(key == enumKeyPress){
+ 250   4              uartbufSet(0x10,0x29,0x00,uart_buf[3],0x00,0x00,0x00,0x00);
+ 251   4              Uart1Print(uart_buf, 8);
+ 252   4            }
+ 253   3            key = GetAdcNavAct(enumAdcNavKeyUp);
+ 254   3            if(key == enumKeyPress){
+ 255   4              uart_buf[3]++;
+ 256   4            }
+ 257   3            key = GetAdcNavAct(enumAdcNavKeyDown);
+ 258   3            if(key == enumKeyPress){
+ 259   4              uart_buf[3]--;
+ 260   4            }
+ 261   3            key = GetAdcNavAct(enumAdcNavKeyCenter);
+ 262   3            if(key == enumKeyPress){
+ 263   4              uart_buf[3] = 0x00;
+ 264   4            }
+ 265   3          }
+ 266   2        }
+ 267   1        
+ 268   1        if(mode == 2){ // 收音机模式下，如果fm_state对应位为1，调整频率或音量
+ 269   2          key = GetAdcNavAct(enumAdcNavKey3);
+ 270   2          if(key == enumKeyPress){
+ 271   3            if((fm_state&0x01) != 0x01)fm_state = (fm_state ^ 0x02); // 如果正在调整音量，指令无效
+ 272   3            if((fm_state&0x02) == 0x02){
+ 273   4              SetBeep(800,20);
+ 274   4            }
+ 275   3            else{
+ 276   4              uartbufSet(0x10,0x29,0x01,0x01,(fm.frequency>>8),(fm.frequency&0x00ff),fm.volume,0x00);
+ 277   4              Uart1Print(uart_buf, 8);
+ 278   4              SetBeep(600,20);
+ 279   4            }
+ 280   3          }
+ 281   2          
+ 282   2          key = GetAdcNavAct(enumAdcNavKeyUp);
+ 283   2          if(key == enumKeyPress){
+ 284   3            if((fm_state&0x01) == 0x01){
+ 285   4              if(fm.volume<15)fm.volume = fm.volume+1;
+ 286   4            }
+ 287   3            else if((fm_state&0x02) == 0x02){
+ 288   4              if(fm.frequency<1080)fm.frequency = fm.frequency+1;
+ 289   4            }
+ 290   3          }
+ 291   2          
+ 292   2          key = GetAdcNavAct(enumAdcNavKeyDown);
+ 293   2          if(key == enumKeyPress){
+ 294   3            if((fm_state&0x01)==0x01){
+ 295   4              if(fm.volume>0)fm.volume = fm.volume-1;
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 6   
+
+ 296   4            }
+ 297   3            else if((fm_state&0x02)==0x02){
+ 298   4              if(fm.frequency>887)fm.frequency = fm.frequency-1;
+ 299   4            }
+ 300   3          }
+ 301   2          SetFMRadio(fm);
+ 302   2        }
+ 303   1      
+ 304   1      }
+ 305          
+ 306          void myUart1Callback(){
+ 307   1        char state;
+ 308   1        uart_buf[2] = receive_buf[2]; // 模式切换
+ 309   1        LedPrint(uart_buf[2]);
+ 310   1      
+ 311   1        
+ 312   1        if(receive_buf[2] == 0x00){ // 刷视频模式，接收从PC传来的超时信号和时间信号
+ 313   2          if(receive_buf[4] == 0x03){ // 收到结束信号，传递刷视频的时间
+ 314   3            // 这里处理传递逻辑
+ 315   3            uartbufSet(0x10,0x29,0xff,0x00,local_addr,receive_buf[5],receive_buf[6],receive_buf[7]);
+ 316   3            Uart2Print(uart_buf, 8);
+ 317   3          }
+ 318   2          else if(receive_buf[4] == 0x04){ // 超时信号，报警提醒，并将信号传递给上位机
+ 319   3            SetBeep(1200,100);
+ 320   3            uartbufSet(0x10,0x29,0xff,0x01,local_addr,0x00,0x00,0x00);
+ 321   3            Uart2Print(uart_buf, 8);
+ 322   3            state = GetUart2TxStatus();
+ 323   3            if(state == enumUart1TxFree){
+ 324   4              uart_buf[2] = 0x00;
+ 325   4            }
+ 326   3          }
+ 327   2        }
+ 328   1        
+ 329   1        if(receive_buf[2] == 0x01){ // 辅助功能，目前只提供同步时钟
+ 330   2          if(receive_buf[3] == 0x01){ // PC传递时钟信息
+ 331   3            if(receive_buf[4] == 0x00){ // 年月日
+ 332   4              clk = RTC_Read();
+ 333   4              clk.year = ((receive_buf[5]/10)<<4)+(receive_buf[5]%10);
+ 334   4              clk.month = ((receive_buf[6]/10)<<4)+(receive_buf[6]%10);
+ 335   4              clk.day = ((receive_buf[7]/10)<<4)+(receive_buf[7]%10);
+ 336   4              RTC_Write(clk);
+ 337   4            }
+ 338   3            else if(receive_buf[4] == 0x01){ // 时分秒
+ 339   4              clk = RTC_Read();
+ 340   4              clk.hour = ((receive_buf[5]/10)<<4)+(receive_buf[5]%10);
+ 341   4              clk.minute = ((receive_buf[6]/10)<<4)+(receive_buf[6]%10);
+ 342   4              clk.second = ((receive_buf[7]/10)<<4)+(receive_buf[7]%10);
+ 343   4              RTC_Write(clk);
+ 344   4            }
+ 345   3            else if(receive_buf[4] == 0x02){ // 星期
+ 346   4              clk = RTC_Read();
+ 347   4              clk.week = ((receive_buf[5]/10)<<4)+(receive_buf[5]%10+1);
+ 348   4              RTC_Write(clk);
+ 349   4            }
+ 350   3          }
+ 351   2        }
+ 352   1      
+ 353   1      }
+ 354          
+ 355          void myUart2Callback(){
+ 356   1        if(receive2_buf[2] == 0x02){ // 上位机直接和PC通信，直接发到串口1
+ 357   2          Uart1Print(receive2_buf, 8);
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 7   
+
+ 358   2        }
+ 359   1      }
+ 360          
+ 361          void myIRCallback(){
+ 362   1        if((ir_buf[0] == 0x10) && (ir_buf[1] == 0x29)){
+ 363   2          if((ir_buf[2] == 0xff) && (ir_buf[4] == local_addr)){
+ 364   3            if(ir_buf[3] == 0x02){ // 强制停机指令
+ 365   4              uartbufSet(0x10,0x29,0x00,0xfe,0x00,0x00,0x00,0x00);
+ 366   4              Uart1Print(uart_buf, 8); // 需要添加停机逻辑
+ 367   4            }
+ 368   3          }
+ 369   2        }
+ 370   1      }
+ 371          
+ 372          unsigned char xdata adc_turn = 0;
+ 373          void my1SCallback(){
+ 374   1        // 这里发送adc值
+ 375   1        
+ 376   1        adc = GetADC();
+ 377   1        if(adc_turn){
+ 378   2          adcbufSet(0x10,0x29,0x01,0x00,0x00,(adc.Rop>>8),(adc.Rop&0x00ff),0x00);
+ 379   2          Uart1Print(adc_buf, 8);
+ 380   2        }
+ 381   1        else{
+ 382   2          adcbufSet(0x10,0x29,0x01,0x00,0x01,(adc.Rt>>8),(adc.Rt&0x00ff),0x00);
+ 383   2          Uart1Print(adc_buf, 8);
+ 384   2        }
+ 385   1        adc_turn = (1 - adc_turn);
+ 386   1        
+ 387   1      }
+ 388          
+ 389          void main(){
+ 390   1        MySTC_Init();
+ 391   1        DisplayerInit();
+ 392   1        BeepInit();
+ 393   1        KeyInit();
+ 394   1        AdcInit(ADCexpEXT);
+ 395   1        IrInit(NEC_R05d);
+ 396   1        Uart1Init(9600);
+ 397   1        Uart2Init(9600, Uart2Usedfor485);
+ 398   1        DS1302Init(clk);
+ 399   1        FMRadioInit(fm);
+ 400   1        
+ 401   1        SetUart1Rxd(receive_buf, 8, uart_head, 2);
+ 402   1        SetUart2Rxd(receive2_buf, 8, uart_head, 2);
+ 403   1        SetIrRxd(ir_buf, 8);
+ 404   1        Seg7Print(46,46,46,46,46,46,46,46);
+ 405   1        LedPrint(0);
+ 406   1        
+ 407   1        SetEventCallBack(enumEventSys100mS,my100mSCallback);
+ 408   1        SetEventCallBack(enumEventKey,myKeyCallback);
+ 409   1        SetEventCallBack(enumEventXADC,myADCCallback);
+ 410   1        SetEventCallBack(enumEventUart1Rxd, myUart1Callback);
+ 411   1        SetEventCallBack(enumEventUart2Rxd, myUart2Callback);
+ 412   1        SetEventCallBack(enumEventIrRxd, myIRCallback);
+ 413   1        SetEventCallBack(enumEventSys1S, my1SCallback);
+ 414   1        while(1){
+ 415   2          MySTC_OS();
+ 416   2        }
+ 417   1      }
+
+
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:45:59 PAGE 8   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1876    ----
+   CONSTANT SIZE    =     55    ----
+   XDATA SIZE       =     24    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     52      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

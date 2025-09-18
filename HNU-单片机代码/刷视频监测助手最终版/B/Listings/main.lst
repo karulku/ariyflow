@@ -1,0 +1,330 @@
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:29:34 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\0_SoftWare\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include<STC15F2K60S2.H>
+   2          #include"sys.h"
+   3          #include"displayer.h"
+   4          #include"Beep.h"
+   5          #include"hall.H"
+   6          #include"key.h"
+   7          #include"ADC.h"
+   8          #include"music.h"
+   9          #include"stepmotor.h"
+  10          #include"Vib.h"
+  11          #include"uart1.h"
+  12          #include"uart2.h"
+  13          #include"M24C02.h"
+  14          #include"intrins.h"
+  15          #include"IR.h"
+  16          #include"DS1302.h"
+  17          
+  18          
+  19          void Delay(unsigned char xms)   //@11.0592MHz
+  20          {
+  21   1        while(xms--){
+  22   2          unsigned char i, j;
+  23   2      
+  24   2          _nop_();
+  25   2          _nop_();
+  26   2          _nop_();
+  27   2          i = 11;
+  28   2          j = 190;
+  29   2          do
+  30   2          {
+  31   3            while (--j);
+  32   3          } while (--i);
+  33   2        }
+  34   1      }
+  35          
+  36          
+  37          // 上位机程序
+  38          
+  39          const unsigned char code DECODE_TABLE[] = { 
+  40              0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, // 0-7
+  41          //  0(0)  1(1)  2(2)  3(3)  4(4)  5(5)  6(6)  7(7)
+  42              0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71, // 8-15
+  43          //  8(8)  9(9)  a(10) b(11) c(12) d(13) e(14) f(15)
+  44              0xBF, 0x86, 0xDB, 0xcF, 0xE6, 0xED, 0xFD, 0x87, // 16-23
+  45          //  0.(16)1.(17)2.(18)3.(19)4.(20)5.(21)6.(22)7.(23)
+  46              0xFF, 0xEF, 0x3d, 0x76, 0x0f, 0x0E, 0x75, 0x38, // 24-31
+  47          //  8.(24)9.(25)G(26) H(27) I(28) J(29) K(30) L(31)
+  48              0x37, 0x54, 0x5c, 0x73, 0x67, 0x31, 0x49, 0x78, // 32-39
+  49          //  M(32) N(33) O(34) P(35) Q(36) R(37) S(38) T(39)
+  50              0x3e, 0x1c, 0x7e, 0x64, 0x6e, 0x5a, 0x00, 0xFF,  // 40-47
+  51          //  U(40) V(41) W(42) X(43) Y(44) Z(45) None  ALL
+  52              0x40
+  53          };
+  54          
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:29:34 PAGE 2   
+
+  55          #define uchar unsigned char
+  56          
+  57          code unsigned long SysClock=11059200;
+  58          unsigned char led_vector;
+  59          
+  60          unsigned char uart_head[2] = {0x10,0x29}; // 串口检测数据包头
+  61          unsigned char receive_buf[8]; // 串口接收缓冲区
+  62          unsigned char seg[8]; // 数码管向量
+  63          unsigned char mode = 0; // 模式选择
+  64          unsigned char NVM_addr = 0x01; // 非易失存储地址
+  65          unsigned char ir_buf[8]; // 红外缓冲区
+  66          unsigned char dis_addr; // 目标下位机地址
+  67          unsigned char set_state; // 设置时间的状态，低三位表示时分秒
+  68          unsigned char uart_buf[8]; // 串口缓冲区（串口2）
+  69          unsigned char h,m,s; // 暂时保存设置的超时时间
+  70          struct_DS1302_RTC ds_time;
+  71          
+  72          void uartbufSet(uchar a, uchar b, uchar c, uchar d, uchar e, uchar f, uchar g, uchar h){
+  73   1        uart_buf[0]=a;
+  74   1        uart_buf[1]=b;
+  75   1        uart_buf[2]=c;
+  76   1        uart_buf[3]=d;
+  77   1        uart_buf[4]=e;
+  78   1        uart_buf[5]=f;
+  79   1        uart_buf[6]=g;
+  80   1        uart_buf[7]=h;
+  81   1      }
+  82          
+  83          void showSeg(){
+  84   1        Seg7Print(seg[0],seg[1],seg[2],seg[3],seg[4],seg[5],seg[6],seg[7]);
+  85   1      }
+  86          
+  87          void segSet(uchar a, uchar b, uchar c, uchar d, uchar e, uchar f, uchar g, uchar h){
+  88   1        seg[0] = a;
+  89   1        seg[1] = b;
+  90   1        seg[2] = c;
+  91   1        seg[3] = d;
+  92   1        seg[4] = e;
+  93   1        seg[5] = f;
+  94   1        seg[6] = g;
+  95   1        seg[7] = h;
+  96   1      }
+  97          
+  98          void irSet(uchar a, uchar b, uchar c, uchar d, uchar e, uchar f, uchar g, uchar h){
+  99   1        ir_buf[0] = a;
+ 100   1        ir_buf[1] = b;
+ 101   1        ir_buf[2] = c;
+ 102   1        ir_buf[3] = d;
+ 103   1        ir_buf[4] = e;
+ 104   1        ir_buf[5] = f;
+ 105   1        ir_buf[6] = g;
+ 106   1        ir_buf[7] = h;
+ 107   1      }
+ 108          
+ 109          void my100mSCallback(){
+ 110   1        LedPrint(mode+1);
+ 111   1        if(mode == 0){
+ 112   2          showSeg();
+ 113   2        }
+ 114   1        else if(mode == 1){
+ 115   2          unsigned char addr,hour,minute,second;
+ 116   2          addr = M24C02_Read(NVM_addr);
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:29:34 PAGE 3   
+
+ 117   2          hour = M24C02_Read(NVM_addr+1);
+ 118   2          minute = M24C02_Read(NVM_addr+2);
+ 119   2          second = M24C02_Read(NVM_addr+3);
+ 120   2          Seg7Print(addr/10,addr%10,hour/10,hour%10,minute/10,minute%10,second/10,second%10);
+ 121   2        }
+ 122   1        else if(mode == 2){
+ 123   2          segSet(46,46,46,46,46,46,dis_addr/10,dis_addr%10);
+ 124   2          showSeg();
+ 125   2        }
+ 126   1        else if(mode == 3){
+ 127   2          segSet(h/10,h%10,48,m/10,m%10,48,s/10,s%10);
+ 128   2          if(set_state == 0x01)seg[7] += 16;
+ 129   2          else if(set_state == 0x02)seg[4] += 16;
+ 130   2          else if(set_state == 0x04)seg[1] += 16;
+ 131   2          showSeg();
+ 132   2        }
+ 133   1      }
+ 134          
+ 135          void myKeyCallback(){
+ 136   1        unsigned char key;
+ 137   1        key = GetKeyAct(enumKey2);
+ 138   1        if(key == enumKeyPress){
+ 139   2          mode = (mode+1)%4;
+ 140   2          if(mode == 0){
+ 141   3            segSet(0,0,0,0,0,0,0,0);
+ 142   3            showSeg();
+ 143   3          }
+ 144   2          if(mode == 3){
+ 145   3            segSet(0,0,0,0,0,0,0,0);
+ 146   3          }
+ 147   2        }
+ 148   1        
+ 149   1        if(mode == 2){
+ 150   2          key = GetKeyAct(enumKey1);
+ 151   2          if(key == enumKeyPress){
+ 152   3            irSet(0x10,0x29,0xff,0x02,dis_addr, 0x00,0x00,0x00);
+ 153   3            IrPrint(ir_buf, 8);
+ 154   3          }
+ 155   2        }
+ 156   1      }
+ 157          
+ 158          void myADCCallback(){
+ 159   1        unsigned char key;
+ 160   1        if(mode == 1){
+ 161   2          
+ 162   2          key = GetAdcNavAct(enumAdcNavKeyUp);
+ 163   2          if(key == enumKeyPress){
+ 164   3            if(NVM_addr<0xfd){
+ 165   4              NVM_addr = NVM_addr+4;
+ 166   4            }
+ 167   3          }
+ 168   2          
+ 169   2          key = GetAdcNavAct(enumAdcNavKeyDown);
+ 170   2          if(key == enumKeyPress){
+ 171   3            if(NVM_addr>0x01){
+ 172   4              NVM_addr = NVM_addr-4;
+ 173   4            }
+ 174   3          }
+ 175   2        }
+ 176   1        if(mode == 2){ // 发送关闭指令的模式
+ 177   2          key = GetAdcNavAct(enumAdcNavKeyUp);
+ 178   2          if(key == enumKeyPress){
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:29:34 PAGE 4   
+
+ 179   3            if(dis_addr<99){
+ 180   4              dis_addr = dis_addr+1;
+ 181   4            }
+ 182   3          }
+ 183   2          key = GetAdcNavAct(enumAdcNavKeyDown);
+ 184   2          if(key == enumKeyPress){
+ 185   3            if(dis_addr>0){
+ 186   4              dis_addr = dis_addr-1;
+ 187   4            }
+ 188   3          }
+ 189   2        }
+ 190   1        
+ 191   1        if(mode == 3){ // 设置超时时间的模式
+ 192   2          key = GetAdcNavAct(enumAdcNavKeyCenter);
+ 193   2          if(key == enumKeyPress){
+ 194   3            if(set_state == 0x00)set_state = 0x04;
+ 195   3            else{
+ 196   4              set_state = 0x00;
+ 197   4            }
+ 198   3          }
+ 199   2          key = GetAdcNavAct(enumAdcNavKeyLeft);
+ 200   2          if(key == enumKeyPress){
+ 201   3            if(set_state!=0x04)set_state = (set_state<<1);
+ 202   3          }
+ 203   2          key = GetAdcNavAct(enumAdcNavKeyRight);
+ 204   2          if(key == enumKeyPress){
+ 205   3            if(set_state!=0x01)set_state = (set_state>>1);
+ 206   3          }
+ 207   2          key = GetAdcNavAct(enumAdcNavKey3);
+ 208   2          if(key == enumKeyPress){
+ 209   3            uartbufSet(0x10,0x29,0x02,0x00,h,m,s,0x00);
+ 210   3            Uart2Print(uart_buf, 8);
+ 211   3          }
+ 212   2          key = GetAdcNavAct(enumAdcNavKeyUp);
+ 213   2          if(key == enumKeyPress){ // 按上键+1
+ 214   3            if(set_state==0x01 && s<59)s+=1;
+ 215   3            else if(set_state==0x02 && m<59)m+=1;
+ 216   3            else if(set_state==0x04 && h<59)h+=1;
+ 217   3          }
+ 218   2          key = GetAdcNavAct(enumAdcNavKeyDown);
+ 219   2          if(key == enumKeyPress){
+ 220   3            if(set_state==0x01&&s>0)s-=1;
+ 221   3            else if(set_state==0x02&&m>0)m-=1;
+ 222   3            else if(set_state==0x04&&h>0)h-=1;
+ 223   3          }
+ 224   2        }
+ 225   1        
+ 226   1      }
+ 227          
+ 228          void myUart1Callback(){
+ 229   1        
+ 230   1      }
+ 231          
+ 232          void myUart2Callback(){
+ 233   1        unsigned char now_addr;
+ 234   1        if(mode == 0){
+ 235   2          if(receive_buf[2] == 0xff){
+ 236   3            if(receive_buf[3] == 0x00){ // 收到时间，在数码管上显示并保存到非易失存储中,数�
+             -�管依次显示：从机地址，时，分，秒
+ 237   4              segSet(receive_buf[4]/10,receive_buf[4]%10,receive_buf[5]/10,receive_buf[5]%10,receive_buf[6]/10,recei
+             -ve_buf[6]%10,receive_buf[7]/10,receive_buf[7]%10);
+ 238   4              now_addr = M24C02_Read(0x00);
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:29:34 PAGE 5   
+
+ 239   4              M24C02_Write(now_addr,receive_buf[4]);
+ 240   4              Delay(10);
+ 241   4              M24C02_Write(now_addr+1,receive_buf[5]);
+ 242   4              Delay(10);
+ 243   4              M24C02_Write(now_addr+2,receive_buf[6]);
+ 244   4              Delay(10);
+ 245   4              M24C02_Write(now_addr+3,receive_buf[7]);
+ 246   4              Delay(10);
+ 247   4              if(now_addr<=0xf8)
+ 248   4                M24C02_Write(0x00,now_addr+4);
+ 249   4              else{
+ 250   5                M24C02_Write(0x00, 0x01);
+ 251   5              }
+ 252   4            }
+ 253   3            else if(receive_buf[3] == 0x01){ // 收到超时信号
+ 254   4              SetBeep(1200, 100);
+ 255   4              segSet(48,48,48,receive_buf[4]/10,receive_buf[4]%10,48,48,48);
+ 256   4            }
+ 257   3          }
+ 258   2        }
+ 259   1      }
+ 260          
+ 261          void main(){
+ 262   1        MySTC_Init();
+ 263   1        DisplayerInit();
+ 264   1        BeepInit();
+ 265   1        HallInit();
+ 266   1        KeyInit();
+ 267   1        AdcInit(ADCexpEXT);
+ 268   1        MusicPlayerInit();
+ 269   1        StepMotorInit();
+ 270   1        VibInit();
+ 271   1        IrInit(NEC_R05d);
+ 272   1        DS1302Init(ds_time);
+ 273   1        Uart1Init(9600);
+ 274   1        Uart2Init(9600, Uart2Usedfor485);
+ 275   1        SetUart1Rxd(receive_buf, 8, uart_head, 2);
+ 276   1        SetUart2Rxd(receive_buf, 8, uart_head, 2);
+ 277   1        
+ 278   1        led_vector = 0xaa;
+ 279   1        Seg7Print(46,46,46,46,46,46,46,46);
+ 280   1        LedPrint(0);
+ 281   1        h = 0;
+ 282   1        m = 0;
+ 283   1        s = 0;
+ 284   1      
+ 285   1        SetEventCallBack(enumEventSys100mS,my100mSCallback);
+ 286   1        SetEventCallBack(enumEventKey,myKeyCallback);
+ 287   1        SetEventCallBack(enumEventXADC,myADCCallback);
+ 288   1        SetEventCallBack(enumEventUart1Rxd, myUart1Callback);
+ 289   1        SetEventCallBack(enumEventUart2Rxd,myUart2Callback);
+ 290   1        
+ 291   1        while(1){
+ 292   2          MySTC_OS();
+ 293   2        }
+ 294   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1293    ----
+   CONSTANT SIZE    =     53    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  09/18/2025 14:29:34 PAGE 6   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     49      33
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
