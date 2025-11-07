@@ -1,0 +1,215 @@
+C51 COMPILER V9.54   MAIN                                                                  10/27/2025 13:30:52 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\0_SoftWare\Keil5\C51\BIN\C51.EXE src\main.c LARGE OMF2 OPTIMIZE(0,SPEED) BROWSE DEBUG PRINT(.\Li
+                    -stings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "global.h"
+   2          #include "stack.h"
+   3          #include "xstack.h"
+   4          #include "scheduler.h"
+   5          #include "bit_ops.h"
+   6          #include "timer0_isr.h"
+   7          #include "syscall.h"
+   8          #include "semaphore.h"
+   9          #include "events.h"
+  10          #include "seg_led.h"
+  11          #include "button.h"
+  12          #include "usbcom.h"
+  13          #include "rs485.h"
+  14          #include "random.h"
+  15          
+  16          #define TIMESLICE_MS  1
+  17          #define T12RL   (65536 - MAIN_Fosc*TIMESLICE_MS/12/1000) 
+  18          
+  19          /*
+  20          交互功能：
+  21            导航上下左右 - 控制方向
+  22            key3 - 发送落子信号
+  23            key2 - 重开
+  24            key1 - 打开网页，建立连接 / 关闭网页
+  25          
+  26          通信规则：
+  27          0,1字节固定为aa 55
+  28          第2字节发送数据
+  29            00 -- 打开网页
+  30            01 -- 上
+  31            02 -- 下
+  32            03 -- 左
+  33            04 -- 右
+  34            05 -- 落子
+  35            06 -- 重开
+  36          */
+  37          
+  38          unsigned char head[2] = {0xaa, 0x55};
+  39          unsigned char* buf;
+  40          unsigned char send_data[8];
+  41          
+  42          void setSendData(unsigned char s0,unsigned char s1,unsigned char s2,unsigned char s3,unsigned char s4,unsi
+             -gned char s5,unsigned char s6,unsigned char s7){
+  43   1        send_data[0] = s0;
+  44   1        send_data[1] = s1;
+  45   1        send_data[2] = s2;
+  46   1        send_data[3] = s3;
+  47   1        send_data[4] = s4;
+  48   1        send_data[5] = s5;
+  49   1        send_data[6] = s6;
+  50   1        send_data[7] = s7;
+  51   1      }
+  52          
+  53          
+C51 COMPILER V9.54   MAIN                                                                  10/27/2025 13:30:52 PAGE 2   
+
+  54          void myproc(u16 param) large reentrant{
+  55   1        while(1){
+  56   2          proc_wait_evts(EVT_BTN1_DN | EVT_BTN2_DN | EVT_BTN3_DN | EVT_NAV_L | EVT_NAV_R | EVT_NAV_U | EVT_NAV_D |
+             - EVT_NAV_PUSH | EVT_UART1_RECV | EVT_UART2_RECV);
+  57   2          if((MY_EVENTS & EVT_BTN1_DN) == EVT_BTN1_DN){ // key1
+  58   3            setSendData(0xaa,0x55,0x00,0x00,0x00,0x00,0x00,0x00);
+  59   3            usbcom_write(send_data, 8);
+  60   3          }
+  61   2          else if((MY_EVENTS & EVT_BTN2_DN) == EVT_BTN2_DN){ // key2
+  62   3            setSendData(0xaa,0x55,0x06,0x00,0x00,0x00,0x00,0x00);
+  63   3            usbcom_write(send_data, 8);
+  64   3          }
+  65   2          else if((MY_EVENTS & EVT_BTN3_DN) == EVT_BTN3_DN){ // key3
+  66   3            setSendData(0xaa,0x55,0x05,0x00,0x00,0x00,0x00,0x00);
+  67   3            usbcom_write(send_data, 8);
+  68   3          }
+  69   2          else if((MY_EVENTS & EVT_NAV_L) == EVT_NAV_L){ // left
+  70   3            setSendData(0xaa,0x55,0x03,0x00,0x00,0x00,0x00,0x00);
+  71   3            usbcom_write(send_data, 8);
+  72   3          }
+  73   2          else if((MY_EVENTS & EVT_NAV_R) == EVT_NAV_R){ // right
+  74   3            setSendData(0xaa,0x55,0x04,0x00,0x00,0x00,0x00,0x00);
+  75   3            usbcom_write(send_data, 8);
+  76   3          }
+  77   2          else if((MY_EVENTS & EVT_NAV_U) == EVT_NAV_U){ // up
+  78   3            setSendData(0xaa,0x55,0x01,0x00,0x00,0x00,0x00,0x00);
+  79   3            usbcom_write(send_data, 8);
+  80   3          }
+  81   2          else if((MY_EVENTS & EVT_NAV_D) == EVT_NAV_D){ // down
+  82   3            setSendData(0xaa,0x55,0x02,0x00,0x00,0x00,0x00,0x00);
+  83   3            usbcom_write(send_data, 8);
+  84   3          }
+  85   2          else if((MY_EVENTS & EVT_NAV_PUSH) == EVT_NAV_PUSH){ // center
+  86   3            setSendData(0xaa,0x55,0x07,0x00,0x00,0x00,0x00,0x00);
+  87   3            usbcom_write(send_data, 8);
+  88   3          }
+  89   2          else if((MY_EVENTS & EVT_UART1_RECV) == EVT_UART1_RECV){ // uart1
+  90   3      
+  91   3          }
+  92   2          else if((MY_EVENTS & EVT_UART2_RECV) == EVT_UART2_RECV){ // uart2
+  93   3        
+  94   3          }
+  95   2        }
+  96   1      }
+*** WARNING C280 IN LINE 54 OF src\main.c: 'param': unreferenced local variable
+  97          
+  98          void timeproc(u16 param) large reentrant{
+  99   1        u8 i = 0;
+ 100   1        while(1){
+ 101   2      
+ 102   2          if(i%10 == 0){}
+ 103   2          if(i%100 == 0){
+ 104   3      
+ 105   3          }
+ 106   2          if(i%1000 == 0){}
+ 107   2          proc_sleep(1);
+ 108   2          i++;
+ 109   2        }
+ 110   1      }
+*** WARNING C280 IN LINE 98 OF src\main.c: 'param': unreferenced local variable
+ 111          
+ 112          main()
+C51 COMPILER V9.54   MAIN                                                                  10/27/2025 13:30:52 PAGE 3   
+
+ 113          {
+ 114   1        //initialize kernel stack and xstack pointer
+ 115   1        SP = kernel_stack;
+ 116   1        setxbp(kernel_xstack + KERNEL_XSTACKSIZE);
+*** WARNING C214 IN LINE 116 OF src\main.c: 'Argument': conversion: pointer to non-pointer
+ 117   1        
+ 118   1        //set process stacks and swap stacks owner
+ 119   1        process_stack[0][PROCESS_STACKSIZE-1] = 0;
+ 120   1        process_stack[1][PROCESS_STACKSIZE-1] = 1;
+ 121   1        process_stack[2][PROCESS_STACKSIZE-1] = 2;
+ 122   1        process_stack[3][PROCESS_STACKSIZE-1] = 3;
+ 123   1        process_stack[4][PROCESS_STACKSIZE-1] = 4;
+ 124   1        process_stack_swap[0][PROCESS_STACKSIZE-1] = 5;
+ 125   1        process_stack_swap[1][PROCESS_STACKSIZE-1] = 6;
+ 126   1        process_stack_swap[2][PROCESS_STACKSIZE-1] = 7;
+ 127   1        
+ 128   1        //initialize LED pins
+ 129   1        P0M1 &= 0x00;
+ 130   1        P0M0 |= 0xff;
+ 131   1        P2M1 &= 0xf0;
+ 132   1        P2M0 |= 0x0f;
+ 133   1        //select LED, set all off
+ 134   1        P23 = 1;
+ 135   1        P0 = 0;
+ 136   1      
+ 137   1        //initialize buttons
+ 138   1        buttons_init();
+ 139   1        
+ 140   1        //initialize serial ports
+ 141   1        usbcom_init(9600);
+ 142   1        rs485_init(9600);
+ 143   1      
+ 144   1        setUartBuf(10, head, 2);
+ 145   1          
+ 146   1        //start process
+ 147   1        led_display_content = 0x00;
+ 148   1        start_process(myproc, 0, 0);
+ 149   1        start_process(timeproc, 1, 0);
+ 150   1          
+ 151   1          
+ 152   1        //initialize PCA2 interrupt (as syscall interrupt)
+ 153   1        //clear CCF2
+ 154   1        CCON &= ~0x04;
+ 155   1        //disable PCA2 module and set ECCF2
+ 156   1        CCAPM2 = 1;
+ 157   1        //low priority interrupt
+ 158   1        PPCA = 0;
+ 159   1        
+ 160   1        //start main timer
+ 161   1        TR0 = 0;                            //stop timer
+ 162   1        TMOD &= 0xF0;                       //timer mode, 16b autoreload
+ 163   1        AUXR &= 0x7F;                       //12T mode
+ 164   1        TL0 = T12RL & 0xff;             //set reload value
+ 165   1        TH0 = (T12RL & 0xff00) >> 8;
+ 166   1        ET0 = EA = 1;                       //set interrupt enable
+ 167   1        PT0 = 0;                            //set priority to low
+ 168   1        TR0 = 1;                            //start timer
+ 169   1        
+ 170   1        //spin
+ 171   1        while(1);
+ 172   1      }
+*** WARNING C294 IN LINE 96 OF src\main.c: unreachable code
+C51 COMPILER V9.54   MAIN                                                                  10/27/2025 13:30:52 PAGE 4   
+
+*** WARNING C294 IN LINE 96 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 110 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 110 OF src\main.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1435    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     21    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  7 WARNING(S),  0 ERROR(S)
