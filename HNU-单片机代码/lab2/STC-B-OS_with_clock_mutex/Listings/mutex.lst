@@ -1,0 +1,87 @@
+C51 COMPILER V9.54   MUTEX                                                                 11/05/2025 21:29:00 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MUTEX
+OBJECT MODULE PLACED IN .\Objects\mutex.obj
+COMPILER INVOKED BY: D:\0_SoftWare\Keil5\C51\BIN\C51.EXE src\mutex.c LARGE OMF2 OPTIMIZE(0,SPEED) BROWSE DEBUG PRINT(.\L
+                    -istings\mutex.lst) TABS(2) OBJECT(.\Objects\mutex.obj)
+
+line level    source
+
+   1          #include "mutex.h"
+   2          
+   3          // 比较并交换
+   4          void lock_init(lock_t* lock){
+   5   1          lock->ticket = 0;
+   6   1          lock->turn = 0;
+   7   1      }
+   8          
+   9          void lock(lock_t* lock){
+  10   1          u8 myturn;
+  11   1      
+  12   1          DISABLE_INTERRUPTS();
+  13   1          myturn = lock->ticket; // 设置当前进程的回合
+  14   1          
+  15   1          lock->ticket = lock->ticket+1;
+  16   1          ENABLE_INTERRUPTS();
+  17   1      
+  18   1          while(lock->turn != myturn){ // 如果没有到当前回合，放弃时间片
+  19   2              proc_yield();
+  20   2          }
+  21   1      
+  22   1          proc_sleep(1);
+  23   1      }
+  24          
+  25          void unlock(lock_t* lock){
+  26   1          DISABLE_INTERRUPTS();
+  27   1          lock->turn = lock->turn+1;
+  28   1          ENABLE_INTERRUPTS();
+  29   1      
+  30   1          proc_sleep(1);
+  31   1      }
+  32          
+  33          // 测试并设置
+  34          // void lock_init(lock_t* mut){
+  35          //     mut->flag = 0;
+  36          // }
+  37          
+  38          // void lock(lock_t* mut){
+  39          //     u8 tmp = 1;
+  40          //     while(tmp == 1){
+  41          //         DISABLE_INTERRUPTS();
+  42          //         if(mut->flag == 0){
+  43          //             mut->flag = 1;
+  44          //             tmp = 0;
+  45          //         } 
+  46          //         ENABLE_INTERRUPTS();
+  47          //     }
+  48          //     proc_sleep(1);
+  49          // }
+  50          
+  51          // void unlock(lock_t* mut){
+  52          //     DISABLE_INTERRUPTS();
+  53          //     mut->flag = 0;
+  54          //     ENABLE_INTERRUPTS();
+C51 COMPILER V9.54   MUTEX                                                                 11/05/2025 21:29:00 PAGE 2   
+
+  55          
+  56          //     proc_sleep(1);
+  57          // }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    217    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     10    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

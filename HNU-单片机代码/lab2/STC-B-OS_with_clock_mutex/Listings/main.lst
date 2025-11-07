@@ -1,0 +1,393 @@
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\0_SoftWare\Keil5\C51\BIN\C51.EXE src\main.c LARGE OMF2 OPTIMIZE(0,SPEED) BROWSE DEBUG PRINT(.\Li
+                    -stings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "global.h"
+   2          #include "stack.h"
+   3          #include "xstack.h"
+   4          #include "scheduler.h"
+   5          #include "bit_ops.h"
+   6          #include "timer0_isr.h"
+   7          #include "syscall.h"
+   8          #include "semaphore.h"
+   9          #include "events.h"
+  10          #include "seg_led.h"
+  11          #include "button.h"
+  12          #include "usbcom.h"
+  13          #include "rs485.h"
+  14          #include "random.h"
+  15          #include "mutex.h"
+  16          
+  17          #define TIMESLICE_MS  1
+  18          #define T12RL   (65536 - MAIN_Fosc*TIMESLICE_MS/12/1000) 
+  19          
+  20          
+  21          void testproc(u16 param) large reentrant
+  22          {
+  23   1        while(1)
+  24   1        {
+  25   2          if((timer0_cnt>>5) & BIT(param))
+  26   2          {
+  27   3            SETBIT(led_display_content, param);
+  28   3          }
+  29   2          else
+  30   2          {
+  31   3            CLEARBIT(led_display_content, param);
+  32   3          }
+  33   2        }
+  34   1      }
+  35          
+  36          void testproc2(u16 param) large reentrant
+  37          {
+  38   1        while(1)
+  39   1        {
+  40   2          proc_sleep(param);
+  41   2          led_display_content = ~led_display_content;
+  42   2        }
+  43   1      }
+  44          
+  45          void testproc3(u16 param) large reentrant
+  46          {
+  47   1        while(1)
+  48   1        {
+  49   2          proc_sleep(param);
+  50   2          led_display_content ^= 0x0f;
+  51   2        }
+  52   1      }
+  53          
+  54          void testproc4() large reentrant
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 2   
+
+  55          {
+  56   1        while(1)
+  57   1        {
+  58   2          proc_sleep(500);
+  59   2          sem_post(0);
+  60   2          led_display_content |= 0x80;
+  61   2          sem_wait(0);
+  62   2          led_display_content &= ~0x80;
+  63   2        }
+  64   1      }
+  65          
+  66          void testproc5() large reentrant
+  67          {
+  68   1        sem_init(0,0);
+  69   1        while(1)
+  70   1        {
+  71   2          sem_wait(0);
+  72   2          led_display_content |= 0x40;
+  73   2          proc_sleep(500);
+  74   2          sem_post(0);
+  75   2          led_display_content &= ~0x40;
+  76   2        }
+  77   1      }
+  78          
+  79          void testproc6(u16 param) large reentrant
+  80          {
+  81   1        while(1)
+  82   1        {
+  83   2          proc_wait_evts(EVT_BTN1_DN);
+  84   2          seg_set_str("HELLO   ");
+  85   2          usbcom_write("hello \0",0);
+  86   2          proc_wait_evts(EVT_NAV_R);
+  87   2          seg_set_str("WORLD   ");
+  88   2          usbcom_write("world\r\n\0",0);
+  89   2          proc_wait_evts(EVT_UART1_RECV);
+  90   2          seg_set_str(usbcom_buf);
+  91   2        }
+  92   1      }
+*** WARNING C280 IN LINE 79 OF src\main.c: 'param': unreferenced local variable
+  93          
+  94          void testproc7(u16 param) large reentrant
+  95          {
+  96   1        while(1)
+  97   1        {
+  98   2          proc_wait_evts(EVT_UART2_RECV | EVT_BTN1_DN);
+  99   2          if(MY_EVENTS & EVT_BTN1_DN)
+ 100   2          {
+ 101   3            *((u32 *)rs485_buf) = rand32();
+ 102   3            rs485_write(rs485_buf, 4);
+ 103   3            seg_set_number(*((u32 *)rs485_buf));
+ 104   3          }
+ 105   2          else
+ 106   2          {
+ 107   3            seg_set_number(*((u32 *)rs485_buf));
+ 108   3          }
+ 109   2        }
+ 110   1      }
+*** WARNING C280 IN LINE 94 OF src\main.c: 'param': unreferenced local variable
+ 111          
+ 112          
+ 113          DSTime t;
+ 114          unsigned char buf[7];
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 3   
+
+ 115          unsigned char time_state = 0;
+ 116          void myproc(u16 param) large reentrant{
+ 117   1        while(1){
+ 118   2          proc_wait_evts(EVT_BTN1_DN | EVT_BTN2_DN | EVT_BTN3_DN | EVT_NAV_L | EVT_NAV_R | EVT_NAV_U | EVT_NAV_D |
+             - EVT_NAV_PUSH | EVT_UART1_RECV | EVT_UART2_RECV);
+ 119   2          if((MY_EVENTS & EVT_BTN1_DN) == EVT_BTN1_DN){ // key1
+ 120   3            t.minute = 2;
+ 121   3            t.second = 15;
+ 122   3            setSysTime(t);
+ 123   3          }
+ 124   2          else if((MY_EVENTS & EVT_BTN2_DN) == EVT_BTN2_DN){ // key2
+ 125   3            time_state = (1 - time_state);
+ 126   3          }
+ 127   2          else if((MY_EVENTS & EVT_BTN3_DN) == EVT_BTN3_DN){ // key3
+ 128   3            led_display_content ^= 0x04;
+ 129   3          }
+ 130   2          else if((MY_EVENTS & EVT_NAV_L) == EVT_NAV_L){ // left
+ 131   3            led_display_content ^= 0x10;
+ 132   3          }
+ 133   2          else if((MY_EVENTS & EVT_NAV_R) == EVT_NAV_R){ // right
+ 134   3            led_display_content ^= 0x20;
+ 135   3          }
+ 136   2          else if((MY_EVENTS & EVT_NAV_U) == EVT_NAV_U){ // up
+ 137   3            led_display_content ^= 0x40;
+ 138   3          }
+ 139   2          else if((MY_EVENTS & EVT_NAV_D) == EVT_NAV_D){ // down
+ 140   3            led_display_content ^= 0x80;
+ 141   3          }
+ 142   2          else if((MY_EVENTS & EVT_NAV_PUSH) == EVT_NAV_PUSH){ // center
+ 143   3            led_display_content ^= 0x08;
+ 144   3          }
+ 145   2          else if((MY_EVENTS & EVT_UART1_RECV) == EVT_UART1_RECV){ // uart1
+ 146   3      
+ 147   3          }
+ 148   2          else if((MY_EVENTS & EVT_UART2_RECV) == EVT_UART2_RECV){ // uart2
+ 149   3      
+ 150   3          }
+ 151   2        }
+ 152   1      }
+*** WARNING C280 IN LINE 116 OF src\main.c: 'param': unreferenced local variable
+ 153          
+ 154          
+ 155          void timeproc(u16 param) large reentrant{
+ 156   1        u8 i = 0;
+ 157   1        while(1){
+ 158   2      
+ 159   2          if(i%10 == 0){}
+ 160   2          if(i%100 == 0){
+ 161   3      
+ 162   3          }
+ 163   2          if(i%1000 == 0){
+ 164   3            t = getSysTime();
+ 165   3            buf[0] = t.year;
+ 166   3            buf[1] = t.month;
+ 167   3            buf[2] = t.day;
+ 168   3            buf[3] = t.hour;
+ 169   3            buf[4] = t.minute;
+ 170   3            buf[5] = t.second;
+ 171   3            if(time_state == 0) setSeg(t.hour/10,t.hour%10,48,t.minute/10,t.minute%10,48,t.second/10,t.second%10);
+ 172   3            else if(time_state == 1) setSeg(t.year/10, t.year%10, 48, t.month/10, t.month%10, 48, t.day/10, t.day%1
+             -0);
+ 173   3            led_display_content = ds1302_readbyte(DS1302_WP);
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 4   
+
+ 174   3          }
+ 175   2          proc_sleep(1);
+ 176   2          i++;
+ 177   2        }
+ 178   1      }
+*** WARNING C280 IN LINE 155 OF src\main.c: 'param': unreferenced local variable
+ 179          
+ 180          unsigned long cnt = 0;
+ 181          unsigned long cnt1=0,cnt2=0;
+ 182          lock_t mut1,mut2;
+ 183          void lockproc1(u16 param){
+ 184   1        u16 i = 0;
+ 185   1      
+ 186   1        while(1){
+ 187   2          while(i < 1000){
+ 188   3      
+ 189   3            // 信号量
+ 190   3            sem_wait(0);
+ 191   3            cnt = cnt+1;
+ 192   3            sem_post(0);
+ 193   3      
+ 194   3            // 锁
+ 195   3            // lock(&mut1);
+ 196   3            // cnt = cnt + 1;
+ 197   3            // unlock(&mut1);
+ 198   3      
+ 199   3            // 开关中断
+ 200   3            // DISABLE_INTERRUPTS();
+ 201   3            // ++cnt;
+ 202   3            // proc_sleep(5);
+ 203   3            // ENABLE_INTERRUPTS();
+ 204   3      
+ 205   3            // ++cnt;
+ 206   3      
+ 207   3            setSegl4(cnt/1000,cnt/100%10,cnt/10%10,cnt%10);
+ 208   3            i = i + 1;
+ 209   3          }
+ 210   2      
+ 211   2          setSegl4(cnt/1000,cnt/100%10,cnt/10%10,cnt%10);
+ 212   2        }
+ 213   1      }
+*** WARNING C280 IN LINE 183 OF src\main.c: 'param': unreferenced local variable
+ 214          
+ 215          void lockproc2(u16 param){
+ 216   1        u16 i = 0;
+ 217   1        sem_init(0, 1);
+ 218   1      
+ 219   1        while(1){
+ 220   2          while(i < 1000){
+ 221   3      
+ 222   3            // 信号量
+ 223   3            sem_wait(0);
+ 224   3            cnt = cnt+1;
+ 225   3            sem_post(0);
+ 226   3      
+ 227   3            // 锁
+ 228   3            // lock(&mut1);
+ 229   3            // cnt = cnt + 1;
+ 230   3            // unlock(&mut1);
+ 231   3      
+ 232   3            // 开关中断
+ 233   3            // DISABLE_INTERRUPTS();
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 5   
+
+ 234   3            // ++cnt;
+ 235   3            // proc_sleep(5);
+ 236   3            // ENABLE_INTERRUPTS();
+ 237   3      
+ 238   3            // ++cnt;
+ 239   3      
+ 240   3            setSegr4(cnt/1000,cnt/100%10,cnt/10%10,cnt%10);
+ 241   3            i = i + 1;
+ 242   3          }
+ 243   2      
+ 244   2          setSegr4(cnt/1000,cnt/100%10,cnt/10%10,cnt%10);
+ 245   2        }
+ 246   1      }
+*** WARNING C280 IN LINE 215 OF src\main.c: 'param': unreferenced local variable
+ 247          
+ 248          void lockTimeProc(u16 param){
+ 249   1        while(1){
+ 250   2          ENABLE_INTERRUPTS();
+ 251   2          setSeg(0,0,0,0,cnt/1000,cnt/100%10,cnt/10%10,cnt%10);
+ 252   2          proc_sleep(100);
+ 253   2        }
+ 254   1      }
+*** WARNING C280 IN LINE 248 OF src\main.c: 'param': unreferenced local variable
+ 255          
+ 256          main()
+ 257          {
+ 258   1        //initialize kernel stack and xstack pointer
+ 259   1        SP = kernel_stack;
+ 260   1        setxbp(kernel_xstack + KERNEL_XSTACKSIZE);
+*** WARNING C214 IN LINE 260 OF src\main.c: 'Argument': conversion: pointer to non-pointer
+ 261   1        
+ 262   1        //set process stacks and swap stacks owner
+ 263   1        process_stack[0][PROCESS_STACKSIZE-1] = 0;
+ 264   1        process_stack[1][PROCESS_STACKSIZE-1] = 1;
+ 265   1        process_stack[2][PROCESS_STACKSIZE-1] = 2;
+ 266   1        process_stack[3][PROCESS_STACKSIZE-1] = 3;
+ 267   1        process_stack[4][PROCESS_STACKSIZE-1] = 4;
+ 268   1        process_stack_swap[0][PROCESS_STACKSIZE-1] = 5;
+ 269   1        process_stack_swap[1][PROCESS_STACKSIZE-1] = 6;
+ 270   1        process_stack_swap[2][PROCESS_STACKSIZE-1] = 7;
+ 271   1        
+ 272   1        //initialize LED pins
+ 273   1        P0M1 &= 0x00;
+ 274   1        P0M0 |= 0xff;
+ 275   1        P2M1 &= 0xf0;
+ 276   1        P2M0 |= 0x0f;
+ 277   1        //select LED, set all off
+ 278   1        P23 = 1;
+ 279   1        P0 = 0;
+ 280   1      
+ 281   1        //initialize buttons
+ 282   1        buttons_init();
+ 283   1        
+ 284   1        //initialize serial ports
+ 285   1        usbcom_init(9600);
+ 286   1        rs485_init(9600);
+ 287   1          
+ 288   1        //start process
+ 289   1        led_display_content = 0x00;
+ 290   1      
+ 291   1        // 演示时钟的代码
+ 292   1        // start_process(myproc, 0, 0);
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 6   
+
+ 293   1        // start_process(timeproc, 1, 0);
+ 294   1      
+ 295   1        // 测试信号量
+ 296   1        // start_process(testproc4, 2, 0);
+ 297   1        // start_process(testproc5, 3, 0);
+ 298   1      
+ 299   1        lock_init(&mut1);
+ 300   1        lock_init(&mut2);
+ 301   1        
+ 302   1        
+ 303   1        // start_process(lockproc2, 1, 0);
+ 304   1        // start_process(lockproc1, 2, 0);
+ 305   1      
+ 306   1        start_process(timeproc, 3, 0);
+ 307   1        start_process(myproc, 4, 0);
+ 308   1          
+ 309   1        //initialize PCA2 interrupt (as syscall interrupt)
+ 310   1        //clear CCF2
+ 311   1        CCON &= ~0x04;
+ 312   1        //disable PCA2 module and set ECCF2
+ 313   1        CCAPM2 = 1;
+ 314   1        //low priority interrupt
+ 315   1        PPCA = 0;
+ 316   1        
+ 317   1        //start main timer
+ 318   1        TR0 = 0;                            //stop timer
+ 319   1        TMOD &= 0xF0;                       //timer mode, 16b autoreload
+ 320   1        AUXR &= 0x7F;                       //12T mode
+ 321   1        TL0 = T12RL & 0xff;             //set reload value
+ 322   1        TH0 = (T12RL & 0xff00) >> 8;
+ 323   1        ET0 = EA = 1;                       //set interrupt enable
+ 324   1        PT0 = 0;                            //set priority to low
+ 325   1        TR0 = 1;                            //start timer
+ 326   1        
+ 327   1        //spin
+ 328   1        while(1);
+ 329   1      }
+*** WARNING C294 IN LINE 34 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 34 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 43 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 43 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 52 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 52 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 92 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 92 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 110 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 110 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 152 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 152 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 178 OF src\main.c: unreachable code
+*** WARNING C294 IN LINE 178 OF src\main.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3338    ----
+   CONSTANT SIZE    =     35    ----
+   XDATA SIZE       =     40    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  11/05/2025 21:41:43 PAGE 7   
+
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  22 WARNING(S),  0 ERROR(S)
