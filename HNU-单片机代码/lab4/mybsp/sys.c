@@ -1,5 +1,4 @@
 #include <sys.h>
-#include "ir.h"
 
 xdata userCallback userCallbacks[10] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}; // 用户绑定的函数地址
 xdata unsigned int eventID = 0x0000;
@@ -92,7 +91,6 @@ void sysRun(){
 		TL0 = 0xCD;
 		TH0 = 0xD4;
 		
-		IR_Poll(); // 红外处理
 		if(userCallbacks[1])userCallbacks[1](); // 触发int1事件
 		disRun();
 		
@@ -205,4 +203,5 @@ void Int0_Routine(void) interrupt 0{
 // 由key2键按下引起的中断
 void Int1_Routine(void) interrupt 2{
 	// if(userCallbacks[1])userCallbacks[1]();
+
 }
