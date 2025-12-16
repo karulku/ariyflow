@@ -15,18 +15,17 @@ unsigned char fm_init_data[8] = {
 		0x00, 0x8F    // reg05
 };
 
-// 延时函数（适用于 12MHz 晶振）
-void delay_us(unsigned int us) {
+void delay_us(unsigned int us){
     unsigned char i;
-    while (us--) {
+    while(us--){
         i = 3; while (i--);
     }
 }
 
-void delay_ms(unsigned int ms) {
+void delay_ms(unsigned int ms){
     unsigned char i, j;
-    for (i = ms; i > 0; i--)
-        for (j = 123; j > 0; j--);
+    for(i = ms; i > 0; i--)
+        for(j = 123; j > 0; j--);
 }
 
 void fmInit(){
@@ -57,7 +56,7 @@ bit I2C_WriteByte(unsigned char dat){
     unsigned char i;
     bit ack;
     for(i = 0; i < 8; i++){
-        if (dat & 0x80) SDA = 1; else SDA = 0;
+        if(dat & 0x80) SDA = 1; else SDA = 0;
         dat <<= 1;
         delay_us(5);
         SCL = 1;
@@ -73,22 +72,20 @@ bit I2C_WriteByte(unsigned char dat){
     return ack;
 }
 
-// RDA5807FP 专用写入：从固定 reg 0x02 开始连续写入 len 字节数据
-void RDA5807_WriteBytes(unsigned char *dat, unsigned char len) {
+void RDA5807_WriteBytes(unsigned char *dat, unsigned char len){
     unsigned char i;
     I2C_Start();
-    if (I2C_WriteByte(0x20)) {  // 写地址 0x20 (7位地址 0x10)
+    if(I2C_WriteByte(0x20)){  // 写地址 0x20 (7位地址 0x10)
         I2C_Stop();
         return;
     }
-    for (i = 0; i < len; i++) {
-        if (I2C_WriteByte(dat[i])) break;
+    for(i = 0; i < len; i++){
+        if(I2C_WriteByte(dat[i])) break;
     }
     I2C_Stop();
 }
 
-// 初始化 RDA5807FP (固定 87.5 MHz, 最大音量, 12MHz 时钟, 点亮三个LED)
-void RDA5807_Init(void) {
+void RDA5807_Init(void){
     // 软复位：reg 0x02 low=0x02 (SOFT_RESET=1), high=0x00
     unsigned char reset_data[2] = {0x00, 0x02};
     RDA5807_WriteBytes(reset_data, 2);
@@ -117,4 +114,5 @@ void stopFM(){
 	unsigned char reset_data[2] = {0x00, 0x02};
 	RDA5807_WriteBytes(reset_data, 2);
 	delay_ms(10);
+
 }
