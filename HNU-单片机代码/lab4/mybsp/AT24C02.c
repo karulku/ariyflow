@@ -8,17 +8,17 @@ sfr P5M0 = 0xCA;
 sbit IIC_SDA = P4^0;
 sbit IIC_SCL = P5^5;
 
-static void delay_us(unsigned int us) {
+static void delay_us(unsigned int us){
     unsigned char i;
-    while (us--) {
+    while(us--){
         i = 3; while (i--);
     }
 }
 
-static void delay_ms(unsigned int ms) {
+static void delay_ms(unsigned int ms){
     unsigned char i, j;
-    for (i = ms; i > 0; i--)
-        for (j = 123; j > 0; j--);
+    for(i = ms; i > 0; i--)
+        for(j = 123; j > 0; j--);
 }
 
 
@@ -104,57 +104,45 @@ unsigned char rAT(unsigned char addr){
 	unsigned char dat;
 	unsigned char device_addr = 0xA0;  // AT24C02 写地址
 
-	// Step 1: Start
 	_AT_IIC_Start();
 
-	// Step 2: Send device write address (0xA0)
 	if(_AT_WriteByte(device_addr)){
 			_AT_IIC_Stop();
-			return 0xFF;  // 地址无应答，返回错误值
+			return 0xFF;
 	}
 
-	// Step 3: Send memory address to read from
 	if(_AT_WriteByte(addr)){
 			_AT_IIC_Stop();
-			return 0xFF;  // 地址写入无应答
+			return 0xFF;
 	}
 
-	// Step 4: Repeated Start
 	_AT_IIC_Start();
 
-	// Step 5: Send device read address (0xA1)
 	if(_AT_WriteByte(device_addr | 0x01)){
 			_AT_IIC_Stop();
-			return 0xFF;  // 读地址无应答
+			return 0xFF;
 	}
 
-	// Step 6: Read one byte, send NACK
-	dat = _AT_ReadByte(1);  // 1 = NACK
+	dat = _AT_ReadByte(1);
 
-	// Step 7: Stop
 	_AT_IIC_Stop();
 
 	return dat;
 }
 
-void wAT(unsigned char addr, unsigned char val) {
-    unsigned char device_addr = 0xA0;  // AT24C02 的 I2C 写地址（7位地址 0x50 << 1 | 0）
-
-    // Step 1: Start
+void wAT(unsigned char addr, unsigned char val){
+    unsigned char device_addr = 0xA0;
+	
     _AT_IIC_Start();
 
-    // Step 2: Send device write address (0xA0)
-    _AT_WriteByte(device_addr);   // 可加应答检查，但此处简化
+    _AT_WriteByte(device_addr);
 
-    // Step 3: Send memory address
     _AT_WriteByte(addr);
 
-    // Step 4: Send data byte
     _AT_WriteByte(val);
 
-    // Step 5: Stop — 触发 EEPROM 内部写入
     _AT_IIC_Stop();
 
-    // Step 6: 等待写周期完成（典型值 5ms，最大 10ms）
-    delay_ms(50);  // 必须延时！否则下一次操作可能失败
+    delay_ms(50); // 这个延时不给无法连续写入
+
 }
