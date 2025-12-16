@@ -1,6 +1,7 @@
 #include "uart2.h"
 #include "regdef.h"
 #include "sys.h"
+#include "display.h"
 
 sfr P3M1 = 0xB1;
 sfr P3M0 = 0xB2;
@@ -10,6 +11,9 @@ sfr S2CON = 0x9A;
 sfr P_SW2 = 0xBA;
 sbit ENABLE_485 = P3^7;
 sfr S2BUF = 0x9B;
+
+sfr T2H = 0xD6;
+sfr T2L = 0xD7;
 
 extern xdata unsigned int eventID;
 
@@ -25,11 +29,34 @@ void uart2Init(unsigned long baudrate){
 	P4M1 |=  0x40;  P4M0 &= ~0x40;   // P4.6: High-Z Input
 
 	// 配置 Timer2 为 1T 模式，作为 UART2 波特率发生器
-	reload = 65536 - (11059200 / 4 / baudrate);
+	reload = 65536 - (11059200 / baudrate);
 	AUXR &= ~0x18;          // 清除 T2R (bit4) 和 T2_CT (bit3)
 	AUXR |=  0x04;          // 设置 T2x12=1 (1T mode)
-	TH2 = reload >> 8;
-	TL2 = (unsigned char)reload;
+	if(baudrate == 1200){
+		T2L = 0x00; T2H = 0xf7;
+	}
+	else if(baudrate == 2400){
+			T2L = 0x50; T2H = 0xfb;
+	}
+	else if(baudrate == 4800){
+			T2L = 0xc0; T2H = 0xfd;
+	}
+	else if(baudrate == 9600){
+			T2L = 0xe0; T2H = 0xfe;
+	}
+	else if(baudrate == 19200){
+			T2L = 0x70; T2H = 0xff;
+	}
+	else if(baudrate == 38400){
+			T2L = 0xb8; T2H = 0xff;
+	}
+	else if(baudrate == 57600){
+			T2L = 0xd0; T2H = 0xff;
+	}
+	else if(baudrate == 115200){
+			T2L = 0xe8; T2H = 0xff;
+	}
+
 	AUXR |= 0x10;           // 启动 Timer2 (T2R=1)
 
 	// 初始化 UART2
@@ -64,6 +91,7 @@ void setUart2Buf(unsigned char* buf, unsigned char buf_num){
 }
 
 void UART2_Routine(void) interrupt 8{
+	
 	if(S2CON&0x02)S2CON &= ~(1<<1);
 	
 	if(S2CON&0x01){
