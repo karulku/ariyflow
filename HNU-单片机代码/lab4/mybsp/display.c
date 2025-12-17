@@ -44,14 +44,14 @@ void setSeg(char s0, char s1, char s2, char s3, char s4, char s5, char s6, char 
 }
 
 void setNum(unsigned long num){
-	_seg_shape[0] = num/10000000%10;
-	_seg_shape[1] = num/1000000%10;
-	_seg_shape[2] = num/100000%10;
-	_seg_shape[3] = num/10000%10;
-	_seg_shape[4] = num/1000%10;
-	_seg_shape[5] = num/100%10;
-	_seg_shape[6] = num/10%10;
-	_seg_shape[7] = num%10;
+	_seg_shape[0] = _dis_table[num/10000000%10];
+	_seg_shape[1] = _dis_table[num/1000000%10];
+	_seg_shape[2] = _dis_table[num/100000%10];
+	_seg_shape[3] = _dis_table[num/10000%10];
+	_seg_shape[4] = _dis_table[num/1000%10];
+	_seg_shape[5] = _dis_table[num/100%10];
+	_seg_shape[6] = _dis_table[num/10%10];
+	_seg_shape[7] = _dis_table[num%10];
 }
 
 void addPoint(unsigned char cur){
@@ -72,4 +72,5 @@ void disRun(){
 		_dis_turn = ((_dis_turn + 1)&0x0f);
 	}
 	
+
 }
