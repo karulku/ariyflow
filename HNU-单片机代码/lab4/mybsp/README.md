@@ -12,8 +12,10 @@
   
     密码:hz06
 
+使用样例：
+
+    https://wwawf.lanzouu.com/iQ0sZ3dukl9c
+
 不要问我没有regx52.h怎么办，自己解决。STM32就是cube配置，非常简单。
 
 小提示：fm收音机使用的RDA5807FP芯片，进行IIC通信时不需要传入寄存器地址，具体参照datasheet。
-
-红外模块ir没做出来，不需要管，直接删去，然后在sys中删除IR_Poll函数的调用即可。
